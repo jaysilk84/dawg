@@ -36,6 +36,14 @@
     stroke: #333;
     stroke-width: 1.5px;
   }
+
+  div /deep/ circle.endOfWord {
+      fill: red;
+  }
+
+  div /deep/ circle.root {
+    fill: green;
+  }
   
   div /deep/ text {
     font: 10px sans-serif;
@@ -46,4 +54,8 @@
     stroke: #fff;
     stroke-width: 3px;
     stroke-opacity: .8;
+  }
+
+  div /deep/ .edgelabel > textPath {
+    font-size: 20px;
   }
