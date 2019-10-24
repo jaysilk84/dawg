@@ -1,0 +1,106 @@
+[
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 0
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 1
+      },
+      "key": "p"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 0
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 1
+      },
+      "key": "c"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 1
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 2
+      },
+      "key": "i"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 2
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 3
+      },
+      "key": "t"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 3
+      },
+      "target": {
+        "endOfWord": true,
+        "id": 6
+      },
+      "key": "y"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 3
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 4
+      },
+      "key": "i"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 4
+      },
+      "target": {
+        "endOfWord": false,
+        "id": 5
+      },
+      "key": "e"
+    },
+    {
+      "source": {
+        "endOfWord": false,
+        "id": 5
+      },
+      "target": {
+        "endOfWord": true,
+        "id": 6
+      },
+      "key": "s"
+    },
+    {
+      "source": {
+        "endOfWord": true,
+        "id": 6
+      },
+      "target": null,
+      "key": null
+    },
+    {
+      "source": {
+        "endOfWord": true,
+        "id": 6
+      },
+      "target": null,
+      "key": null
+    }
+  ]
