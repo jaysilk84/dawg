@@ -5,7 +5,7 @@ import { stringify } from '@angular/compiler/src/util';
 import { min } from 'd3';
 
 
-const localUrl = 'assets/output.json';
+const localUrl = 'http://localhost:5000/graph';
 
 @Component({
   selector: 'app-dawg-chart',
@@ -65,8 +65,8 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     let nodes = {} as any;
     // Compute the distinct nodes from the links.
     links.forEach(function (link) {
-      link.source = nodes[link.source.id] || (nodes[link.source.id] = { id: link.source.id, name: link.source.id.toString(), endOfWord: link.source.endOfWord });
-      link.target = nodes[link.target.id] || (nodes[link.target.id] = { id: link.target.id, name: link.target.id.toString(), endOfWord: link.target.endOfWord });
+      link.source = nodes[link.source.id] || (nodes[link.source.id] = { isRoot: link.source.isRoot, id: link.source.id, name: link.source.id.toString(), endOfWord: link.source.endOfWord });
+      link.target = nodes[link.target.value.id] || (nodes[link.target.value.id] = { isRoot: link.target.value.isRoot, id: link.target.value.id, name: link.target.value.id.toString(), endOfWord: link.target.value.endOfWord });
     });
 
     noTargetLinks.forEach(link => nodes[link.source.id] = { name: link.source.id.toString(), endOfWord: link.source.endOfWord });
@@ -169,7 +169,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
         node_enter.append('circle')
           .attr('class', (d: any) => {
-            if (d.id == 0) return 'node root';
+            if (d.isRoot) return 'node root';
             return 'node ' + (d.endOfWord ? 'endOfWord' : '');
           })
           .attr('r', 10)

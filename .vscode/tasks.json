@@ -2,12 +2,24 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build-cli",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
                 "${workspaceFolder}/JaySilk.Dawg.Cli/JaySilk.Dawg.Cli.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build-api",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/JaySilk.Dawg.Api/JaySilk.Dawg.Api.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

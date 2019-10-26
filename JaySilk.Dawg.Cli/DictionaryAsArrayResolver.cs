@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using Newtonsoft.Json.Serialization;
+using JaySilk.Dawg.Lib;
 
 public class DictionaryAsArrayResolver : DefaultContractResolver
 {

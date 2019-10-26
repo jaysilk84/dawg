@@ -5,14 +5,27 @@
    "version": "0.2.0",
    "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "JaySilk.Dawg.Cli",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "build-cli",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/JaySilk.Dawg.Cli/bin/Debug/netcoreapp3.0/JaySilk.Dawg.Cli.dll",
             "args": [],
             "cwd": "${workspaceFolder}/JaySilk.Dawg.Cli",
+            // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "JaySilk.Dawg.Api",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-api",
+            // If you have changed target frameworks, make sure to update the program path.
+            "program": "${workspaceFolder}/JaySilk.Dawg.Api/bin/Debug/netcoreapp3.0/JaySilk.Dawg.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/JaySilk.Dawg.Api",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
