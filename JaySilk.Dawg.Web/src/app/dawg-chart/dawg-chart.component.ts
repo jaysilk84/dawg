@@ -1,13 +1,12 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
+import { GraphService } from '../services/graph.service';
+
 import * as d3 from 'd3';
 import { Edge } from '../models/edge.model';
 import { Vertex } from '../models/vertex.model';
-import { BiLink } from '../models/BiLink.model';
+import { BiLink } from '../models/biLink.model';
 import { switchMap } from "rxjs/operators"
-
-const localUrl = 'https://localhost:5001/graph';
 
 @Component({
   selector: 'app-dawg-chart',
@@ -19,7 +18,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
   @ViewChild('chart', { static: false })
   chart: ElementRef;
 
-  constructor(private http: HttpClient, private route: ActivatedRoute, private router: Router) { }
+  constructor(private graph: GraphService, private route: ActivatedRoute, private router: Router) { }
 
   ngOnInit() {
   }
@@ -28,10 +27,10 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     this.router.events.subscribe(e => {
       if (e instanceof NavigationEnd) {
         this.route.queryParamMap.pipe(
-          switchMap((params, index) => {
-            let numwords = params.get("numwords") || 10;
-            let batchsize = params.get("batchsize") || 2;
-            return this.http.get<Array<Edge>>(localUrl + '?numWords=' + numwords + '&batchSize=' + batchsize);
+          switchMap((params) => {
+            const numwords: number = +params.get("numwords") || 10;
+            const batchsize: number = +params.get("batchsize") || 2;
+            return this.graph.getEdges(numwords, batchsize);
           })
 
         ).subscribe((data) => this.buildChart(data));
