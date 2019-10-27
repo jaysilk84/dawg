@@ -16,11 +16,11 @@ namespace JaySilk.Dawg.Api.Controllers
     public class GraphController : ControllerBase
     {
         [HttpGet]
-        public IEnumerable<Edge> Get() {
+        public IEnumerable<Edge> Get(int numWords = 10, int batchSize = 2 ) {
             var dawg = new Lib.Dawg();
             var db = new Data.Database();
 
-            foreach (var w in db.GetRandomWords(10, 2)) {
+            foreach (var w in db.GetRandomWords(numWords, batchSize)) {
                 dawg.Insert(w);
             }
             dawg.Finish();

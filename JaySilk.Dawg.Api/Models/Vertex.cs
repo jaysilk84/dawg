@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using JaySilk.Dawg.Lib;
+using Newtonsoft.Json;
 
 namespace JaySilk.Dawg.Api.Models
 {
@@ -18,12 +19,12 @@ namespace JaySilk.Dawg.Api.Models
             IsRoot = node.IsRoot;
         }
 
-        [JsonPropertyName("endOfWord")]
+        [JsonProperty("endOfWord")]
         public bool EndOfWord { get; }
-        [JsonPropertyName("id")]
+        [JsonProperty("id")]
         public int Id { get; }
 
-        [JsonPropertyName("isRoot")]
+        [JsonProperty("isRoot")]
         public bool IsRoot {get; }
     }
 

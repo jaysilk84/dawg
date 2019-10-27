@@ -1,48 +1,52 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { ActivatedRoute, Router, NavigationEnd } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import * as d3 from 'd3';
-import { stringify } from '@angular/compiler/src/util';
-import { min } from 'd3';
+import { Edge } from '../models/edge.model';
+import { Vertex } from '../models/vertex.model';
+import { BiLink } from '../models/BiLink.model';
+import { switchMap } from "rxjs/operators"
 
-
-const localUrl = 'http://localhost:5000/graph';
+const localUrl = 'https://localhost:5001/graph';
 
 @Component({
   selector: 'app-dawg-chart',
   templateUrl: './dawg-chart.component.html',
   styleUrls: ['./dawg-chart.component.less'],
-  //providers: [HttpClient]
 })
 export class DawgChartComponent implements OnInit, AfterViewInit {
 
   @ViewChild('chart', { static: false })
   chart: ElementRef;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private route: ActivatedRoute, private router: Router) { }
 
   ngOnInit() {
   }
 
   ngAfterViewInit() {
-    this.http.get(localUrl).subscribe((data) => this.buildChartNew(data));
+    this.router.events.subscribe(e => {
+      if (e instanceof NavigationEnd) {
+        this.route.queryParamMap.pipe(
+          switchMap((params, index) => {
+            let numwords = params.get("numwords") || 10;
+            let batchsize = params.get("batchsize") || 2;
+            return this.http.get<Array<Edge>>(localUrl + '?numWords=' + numwords + '&batchSize=' + batchsize);
+          })
 
-    //this.buildChartNew();
+        ).subscribe((data) => this.buildChart(data));
+      }
+    })
   }
 
 
-  buildChartNew(links: any) {
-    // let links = [{ source: "Microsoft", target: "Amazon", type: "licensing", linknum: 0 },
-    // { source: "Microsoft", target: "Amazon", type: "suit", linknum: 0 },
-    // { source: "Samsung", target: "Apple", type: "suit", linknum: 0 },
-    // { source: "Microsoft", target: "Amazon", type: "resolved", linknum: 0 },
-    // { source: "Microsoft", target: "Apple", type: "suit", linknum: 0 },
-    // ] as any;
+  buildChart(links: Array<Edge>) {
 
-    let noTargetLinks = links.filter(d => d.target == null);
-    links = links.filter(d => d.target);
+    const noTargetLinks = links.filter((d) => d.target == null);
+    links = links.filter((d) => d.target);
 
     //sort links by source, then target
-    links.sort(function (a, b) {
+    links.sort((a, b) => {
       if (a.source.id > b.source.id) { return 1; }
       else if (a.source.id < b.source.id) { return -1; }
       else {
@@ -62,29 +66,29 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
       else { links[i].linknum = 1; };
     };
 
-    let nodes = {} as any;
+    const nodes = new Set<Vertex>();
+
     // Compute the distinct nodes from the links.
-    links.forEach(function (link) {
-      link.source = nodes[link.source.id] || (nodes[link.source.id] = { isRoot: link.source.isRoot, id: link.source.id, name: link.source.id.toString(), endOfWord: link.source.endOfWord });
-      link.target = nodes[link.target.value.id] || (nodes[link.target.value.id] = { isRoot: link.target.value.isRoot, id: link.target.value.id, name: link.target.value.id.toString(), endOfWord: link.target.value.endOfWord });
+    links.forEach((link) => {
+      nodes[link.source.id] = link.source;
+      nodes[link.target.id] = link.target;
     });
 
-    noTargetLinks.forEach(link => nodes[link.source.id] = { name: link.source.id.toString(), endOfWord: link.source.endOfWord });
-    //links.forEach((link) => nodes[link.id] = {name: link.id, endOfWord: link.endOfWord});
+    noTargetLinks.forEach(link => nodes[link.source.id] = link.source);
 
-    let tnodes = d3.values(nodes);
-    var nodeById = d3.map(tnodes, function (d: any) { return d.name; }),
-      bilinks = [];
+    const tnodes: Array<Vertex> = d3.values(nodes);
+    const nodeById = d3.map(tnodes, function (d) { return d.id.toString(); });
+    const bilinks = new Array<BiLink>();
 
     links.forEach(function (link) {
-      var key = link.key,
-        linknum = link.linknum,
-        s = link.source = nodeById.get(link.source.name),
-        t = link.target = nodeById.get(link.target.name),
-        i = {}; // intermediate node
+      const key: string = link.key,
+        linknum: number = link.linknum,
+        s: Vertex = link.source = nodeById.get(link.source.id.toString()),
+        t: Vertex = link.target = nodeById.get(link.target.id.toString()),
+        i: Vertex = { id: null, endOfWord: null, isRoot: null }; // intermediate node
       tnodes.push(i);
-      links.push({ source: s, target: i }, { source: i, target: t });
-      bilinks.push([s, i, t, key, linknum]);
+      links.push({ source: s, target: i, key: key, linknum: 0 }, { source: i, target: t, key: key, linknum: 0 });
+      bilinks.push({ source: s, intermediate: i, target: t, key: key, linknum: linknum });
     });
 
     const margin = {
@@ -109,7 +113,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     const defs = svg.append("svg:defs").selectAll("marker")
       .data(["end"])
       .join((enter) => enter.append("svg:marker")
-        .attr("id", (d: any) => d)
+        .attr("id", (d) => d)
         .attr("viewBox", "0 -5 10 10")
         .attr("refX", 20)
         .attr("refY", -2)
@@ -123,7 +127,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     // Links data join
     const link = svg.selectAll('.link').data(bilinks).join(
       (enter) => enter.append('svg:path')
-        .attr("class", function (d) { return "link " + d[3]; })
+        .attr("class", (d) => "link " + d.key)
         .attr("marker-end", "url(#end)")
     );
 
@@ -133,7 +137,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
           .attr('class', 'edgepath')
           .attr('fill-opacity', 0)
           .attr('stroke-opacity', 0)
-          .attr('id', function (d, i) { return 'edgepath' + i });
+          .attr('id', (d, i) => 'edgepath' + i.toString());
 
         return node_enter;
       });
@@ -146,20 +150,20 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
           .attr('font-size', "50")
           .attr('fill', '#000')
           .attr("dy", "-.35em")
-          .attr('id', function (d, i) { return 'edgelabel' + i })
+          .attr('id', (d, i) => 'edgelabel' + i.toString())
 
           .append('textPath')
-          .attr('xlink:href', function (d: any, i: any) { return '#edgepath' + i })
+          .attr('xlink:href', (d, i) => '#edgepath' + i.toString())
           .style("text-anchor", "middle")
           .style("pointer-events", "none")
           .attr("startOffset", "50%")
-          .text(function (d: any) { return d[3] });
+          .text((d) => d.key );
 
         return node_enter;
       });
 
     // Nodes data join
-    const node = svg.selectAll('.node').data(tnodes.filter((d: any) => d.name)).join(
+    const node = svg.selectAll('.node').data(tnodes.filter((d) => d.id)).join(
       (enter) => {
         const node_enter = enter.append('g')
           .call(d3.drag()
@@ -168,31 +172,27 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
             .on("end", dragended));
 
         node_enter.append('circle')
-          .attr('class', (d: any) => {
+          .attr('class', (d) => {
             if (d.isRoot) return 'node root';
             return 'node ' + (d.endOfWord ? 'endOfWord' : '');
           })
           .attr('r', 10)
-          .append('title').text((d: any) => d.name);
+          .append('title').text((d) => d.id.toString());
 
         node_enter.append('text')
           .attr('class', 'title')
           .attr("dy", ".35em")
           .attr("text-anchor", "middle")
-          .text(function (d: any) { return d.name; });
+          .text((d) =>  d.id.toString());
         return node_enter;
       });
 
     const simulation = d3.forceSimulation()
       .nodes(tnodes)
-      .force('link', d3.forceLink(links).distance(80).id((d: any) => d.name))
+      .force('link', d3.forceLink(links).distance(80))//.id((d: Vertex) => d.id ? d.id.toString() : null))
       .force('collide', d3.forceCollide().radius(2).strength(5))
       .force('charge', d3.forceManyBody().strength(-140).distanceMax(150).distanceMin(30))
-      .force('center', d3.forceCenter(width / 2, height / 2)) as any;
-
-    //simulation
-    //.nodes(d3.values(nodes))
-    //.force('link').links(links);
+      .force('center', d3.forceCenter(width / 2, height / 2));
 
     // Drag stuff
     function dragstarted(d) {
@@ -208,36 +208,25 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
     function dragended(d) {
       if (!d3.event.active) simulation.alphaTarget(0);
+
       d.fx = null;
       d.fy = null;
     }
 
 
     simulation.on('tick', () => {
-      // link.attr("d", function (d: any) {
-      //   var dx = d.target.x - d.source.x,
-      //     dy = d.target.y - d.source.y,
-      //     dr = (100 / d.linknum);  //linknum is defined above
-      //   return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
-      // });
 
-      var renderLinks = function (d: any) {
-        return "M" + d[0].x + "," + d[0].y
-          + "S" + d[1].x + "," + d[1].y
-          + " " + d[2].x + "," + d[2].y;
-      };
-
-      var renderLinksBetter = function (d: any) {
+      const renderLinksBetter = (d: BiLink) => {
         const weight = 2;
-        var source = d[0];
-        var target = d[2];
-        var linknum = d[4];
+        const source = d.source;
+        const target = d.target;
+        const linknum = d.linknum;
 
-        var dx = target.x - source.x,
+        const dx = target.x - source.x,
           dy = target.y - source.y;
-        var qx = dy / weight * linknum, //linknum is defined above
+        const qx = dy / weight * linknum, //linknum is defined above
           qy = -dx / weight * linknum;
-        var qx1 = (source.x + (dx / 2)) + qx,
+        const qx1 = (source.x + (dx / 2)) + qx,
           qy1 = (source.y + (dy / 2)) + qy;
 
         return "M" + source.x + " " + source.y +
@@ -248,29 +237,13 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
       link.attr("d", renderLinksBetter);
 
-      node.attr("transform", (d: any) => {
-        return "translate(" + d.x + "," + d.y + ")";
-      });
-      // node
-      //   .attr("cx", (d:any) => d.x)
-      //   .attr("cy", (d:any) => d.y);
-
+      node.attr("transform", (d) => "translate(" + d.x + "," + d.y + ")");
 
       edgepaths.attr('d', renderLinksBetter);
 
-      // function (d: any) {
-      //   //return 'M ' + d.source.x + ' ' + d.source.y + ' L ' + d.target.x + ' ' + d.target.y;
-      //   var dx = d.target.x - d.source.x,
-      //     dy = d.target.y - d.source.y,
-      //     dr = (100 / d.linknum);  //linknum is defined above
-      //   return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
-      // });
-
-      edgelabels.attr('transform', function (d: any) {
-        const that = this as any;
-
-        if (d[2].x < d[0].x) {
-          var bbox = that.getBBox();
+      edgelabels.attr('transform', function (this: SVGGraphicsElement, d) {
+        if (d.target.x < d.source.x) {
+          const bbox = this.getBBox();
 
           const rx = bbox.x + bbox.width / 2;
           const ry = bbox.y + bbox.height / 2;

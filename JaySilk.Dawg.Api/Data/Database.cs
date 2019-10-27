@@ -15,7 +15,7 @@ namespace JaySilk.Dawg.Api.Data
                 var batch = batchSize;
 
                 while (r.Peek() >= 0 && count < wordCount) {
-                    if (rand.Next(1, 20001) > 1 && batch == 0) {
+                    if (rand.Next(1, 2001) > 1 && batch == 0) {
                         r.ReadLine();
                         continue;
                     }

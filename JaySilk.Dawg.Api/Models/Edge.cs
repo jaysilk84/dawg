@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace JaySilk.Dawg.Api.Models
 {
@@ -11,11 +12,11 @@ namespace JaySilk.Dawg.Api.Models
             Key = key;
         }
 
-        [JsonPropertyName("source")]
+        [JsonProperty("source")]
         public Vertex Source { get; }
-        [JsonPropertyName("target")]
+        [JsonProperty("target")]
         public Vertex? Target { get; }
-        [JsonPropertyName("key")]
+        [JsonProperty("key")]
         public char? Key { get; }
     }
 }
