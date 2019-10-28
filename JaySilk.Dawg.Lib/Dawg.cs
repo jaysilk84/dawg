@@ -8,12 +8,14 @@ namespace JaySilk.Dawg.Lib
 {
     public class Dawg
     {
-        public Node Root { get; } = new Node(true);
         private readonly List<(Node, char, Node)> uncheckedNodes = new List<(Node, char, Node)>();
         private readonly HashSet<Node> minimizedNodes = new HashSet<Node>();
         private string previousWord = "";
 
-        public int NodeCount => minimizedNodes.Count;
+        public Node Root { get; } = new Node(true);
+        public int NodeCount => Nodes.Count();
+        public IEnumerable<Node> Nodes => DepthFirstNodeIterator(Root);
+        public int EdgeCount => Nodes.Sum(n => n.Children.Count);
 
         public void Insert(string word) {
             var commonPrefix = 0;
@@ -54,6 +56,18 @@ namespace JaySilk.Dawg.Lib
             }
         }
 
+        public bool Exists(string word) {
+            var node = Root;
+ 
+            foreach (var l in word)
+                if (node.Children.ContainsKey(l)) 
+                    node = node.Children[l];
+                 else 
+                    return false;
+
+            return node.EndOfWord;  
+        }
+
         public IEnumerable<string> MapToString(Node root) {
             var stack = new Stack<Node>();
             var done = new HashSet<int>();
@@ -75,6 +89,26 @@ namespace JaySilk.Dawg.Lib
                 }
 
                 yield return content.ToString();
+            }
+        }
+
+        private IEnumerable<Node> DepthFirstNodeIterator(Node root) {
+            var stack = new Stack<Node>();
+            var done = new HashSet<int>();
+
+            stack.Push(root);
+
+            while (stack.Count() > 0) {
+                var node = stack.Pop();
+
+                if (done.Contains(node.Id)) continue;
+
+                yield return node;
+
+                foreach (var (key, child) in node.Children) {
+                    stack.Push(child);
+                    done.Add(node.Id);
+                }
             }
         }
     }

@@ -61,7 +61,7 @@ namespace JaySilk.Dawg.Cli
             //var words = new string[] { "cities", "city", "pities", "pity" }; //, pities, pity" };
 
             //var words = new string[] { "blip", "cat", "catnip", "cats" };
-            var words = new string[] { "cat", "catnip", "zcatnip" };
+            //var words = new string[] { "cat", "catnip", "zcatnip" };
 
             // foreach (var w in words) {
             //    dawg.Insert(w);
@@ -69,7 +69,12 @@ namespace JaySilk.Dawg.Cli
 
             // dawg.Finish();
 
+            // printMap(dawg.Root);
+            // //Console.WriteLine($"Nodes {dawg.Nodes.Count()}");
+            // foreach (var n in dawg.Nodes)
+            //     Console.WriteLine($"{n.Id}");
             // Console.WriteLine($"Node count {dawg.NodeCount}");
+            // Console.WriteLine($"Edge count {dawg.EdgeCount}");
 
             // return;
 
@@ -78,7 +83,7 @@ namespace JaySilk.Dawg.Cli
                 var batch = BatchSize;
 
                 while (r.Peek() >= 0 && count < WordCount) {
-                    if (rand.Next(1, 20001) > 1 && batch == 0) {
+                    if (rand.Next(1, 2001) > 1 && batch == 0) {
                         r.ReadLine();
                         continue;
                     }
@@ -98,6 +103,7 @@ namespace JaySilk.Dawg.Cli
 
             dawg.Finish();
             Console.WriteLine($"Final Node count {dawg.NodeCount}");
+           Console.WriteLine($"Edge count {dawg.EdgeCount}");
 
 //            minimize(0);
 
@@ -154,31 +160,31 @@ namespace JaySilk.Dawg.Cli
             //     previousWord = word;
             // }
 
-            // void printMap(Node root) {
-            //     var stack = new Stack<Node>();
-            //     var done = new HashSet<int>();
+            void printMap(Node root) {
+                var stack = new Stack<Node>();
+                var done = new HashSet<int>();
 
 
-            //     stack.Push(root);
+                stack.Push(root);
 
-            //     while (stack.Count() > 0) {
-            //         var content = new StringBuilder();
-            //         var node = stack.Pop();
+                while (stack.Count() > 0) {
+                    var content = new StringBuilder();
+                    var node = stack.Pop();
 
-            //         if (done.Contains(node.Id)) continue;
+                    if (done.Contains(node.Id)) continue;
 
-            //         content.AppendLine($"{node.Id,-5} {node.ToString()}");
+                    content.AppendLine($"{node.Id,-5} {node.ToString()}");
 
-            //         foreach (var (key, child) in node.Children.OrderByDescending(x => x.Key)) {
-            //             content.AppendLine($"{key,5} goto {child.Id}");
-            //             stack.Push(child);
-            //             done.Add(node.Id);
-            //         }
+                    foreach (var (key, child) in node.Children.OrderByDescending(x => x.Key)) {
+                        content.AppendLine($"{key,5} goto {child.Id}");
+                        stack.Push(child);
+                        done.Add(node.Id);
+                    }
 
-            //         Console.WriteLine(content.ToString());
+                    Console.WriteLine(content.ToString());
 
-            //     }
-            // }
+                }
+            }
 
             // string serializeMap(Node root) {
             //     var stack = new Stack<Node>();

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc.NewtonsoftJson;
+using JaySilk.Dawg.Api.Hubs;
 
 namespace JaySilk.Dawg.Api
 {
@@ -29,11 +31,16 @@ namespace JaySilk.Dawg.Api
                 options.AddPolicy("ApprovedSites",
                 builder =>
                 {
-                    builder.WithOrigins("http://localhost:4200");
+                    builder.WithOrigins("http://localhost:4200")
+                        .AllowAnyHeader()
+                        .WithMethods("GET", "POST")
+                        .AllowCredentials(); ;
                 });
             });
 
-            services.AddControllers().AddNewtonsoftJson();            
+            services.AddSignalR().AddNewtonsoftJsonProtocol();
+
+            services.AddControllers().AddNewtonsoftJson();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,7 +51,7 @@ namespace JaySilk.Dawg.Api
 
             app.UseCors("ApprovedSites");
 
-//            app.UseHttpsRedirection();
+            //            app.UseHttpsRedirection();
 
             app.UseRouting();
 
@@ -53,6 +60,7 @@ namespace JaySilk.Dawg.Api
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHub<GraphHub>("/graphhub");
             });
         }
     }

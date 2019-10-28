@@ -6,7 +6,7 @@ import * as d3 from 'd3';
 import { Edge } from '../models/edge.model';
 import { Vertex } from '../models/vertex.model';
 import { BiLink } from '../models/biLink.model';
-import { switchMap } from "rxjs/operators"
+import { switchMap, delay } from "rxjs/operators"
 
 @Component({
   selector: 'app-dawg-chart',
@@ -24,18 +24,21 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    this.router.events.subscribe(e => {
-      if (e instanceof NavigationEnd) {
-        this.route.queryParamMap.pipe(
-          switchMap((params) => {
-            const numwords: number = +params.get("numwords") || 10;
-            const batchsize: number = +params.get("batchsize") || 2;
-            return this.graph.getEdges(numwords, batchsize);
-          })
+    // this.router.events.subscribe(e => {
+    //   if (e instanceof NavigationEnd) {
+    //     this.route.queryParamMap.pipe(
+    //       switchMap((params) => {
+    //         const numwords: number = +params.get("numwords") || 10;
+    //         const batchsize: number = +params.get("batchsize") || 2;
+    //         return this.graph.getEdges(numwords, batchsize);
+    //       })
 
-        ).subscribe((data) => this.buildChart(data));
-      }
-    })
+    //     ).subscribe((data) => this.buildChart(data));
+    //   }
+    // });
+    
+    this.graph.messageReceived.subscribe((data: Edge[]) => this.buildChart(data));
+
   }
 
 
@@ -99,6 +102,8 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
     const width = 1920 - margin.left - margin.right;
     const height = 1080 - margin.top - margin.bottom;
+
+    d3.selectAll("svg").remove();
 
     // Creates sources <svg> element and inner g (for margins)
     const svg = d3.select(this.chart.nativeElement).append('svg')

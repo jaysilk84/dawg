@@ -1,33 +1,30 @@
-using System;
+using Microsoft.AspNetCore.SignalR;  
+using System.Threading.Tasks;  
 using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-
 using JaySilk.Dawg.Api.Models;
 using JaySilk.Dawg.Lib;
 
-namespace JaySilk.Dawg.Api.Controllers
-{
-    [ApiController]
-    [Route("[controller]")]
-    public class GraphController : ControllerBase
-    {
-        [HttpGet]
-        public IEnumerable<Edge> Get(int numWords = 10, int batchSize = 2 ) {
+namespace JaySilk.Dawg.Api.Hubs  
+{  
+    public class GraphHub : Hub  
+    {  
+        public async Task NewMessage(int numWords, int batchSize)  
+        {  
             var dawg = new Lib.Dawg();
             var db = new Data.Database();
 
             foreach (var w in db.GetRandomWords(numWords, batchSize)) {
                 dawg.Insert(w);
+                await Clients.Caller.SendAsync("MessageReceived", Serialize(dawg.Root));  
+                await Task.Delay(2000);
             }
             dawg.Finish();
 
-            return Serialize(dawg.Root);
-        }
+            await Clients.Caller.SendAsync("MessageReceived", Serialize(dawg.Root));  
+            //return Serialize(dawg.Root);
 
+            
+        }  
 
         private IEnumerable<Edge> Serialize(Node root) {
             var stack = new Stack<Node>();
@@ -56,5 +53,5 @@ namespace JaySilk.Dawg.Api.Controllers
             return links;
         }
 
-    }
-}
+    }  
+}  
