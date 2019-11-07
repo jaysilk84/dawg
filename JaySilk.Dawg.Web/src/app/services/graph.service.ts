@@ -18,9 +18,9 @@ export class GraphService {
   connectionEstablished = new EventEmitter<Boolean>();
 
   constructor(private http: HttpClient) { 
-    this.createConnection();  
-    this.registerOnServerEvents();  
-    this.startConnection(); 
+    // this.createConnection();  
+    // this.registerOnServerEvents();  
+    // this.startConnection(); 
   }
 
   getEdges(numWords = 10, batchSize = 2): Observable<Edge[]> {
