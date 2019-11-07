@@ -7,6 +7,7 @@ import { Edge } from '../models/edge.model';
 import { Vertex } from '../models/vertex.model';
 import { BiLink } from '../models/biLink.model';
 import { switchMap, delay } from "rxjs/operators"
+import { disableDebugTools } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-dawg-chart',
@@ -47,15 +48,14 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
   }
 
   setCanvasDpi(canvas, dpi = DawgChartComponent.DPI) {
-    //get CSS height
-    //the + prefix casts it to an integer
-    //the slice method gets rid of "px"
-    let style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
-    //get CSS width
-    let style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
-    //scale the canvas
-    canvas.setAttribute('height', style_height * dpi);
-    canvas.setAttribute('width', style_width * dpi);
+    const style_height = +getComputedStyle(canvas).getPropertyValue("height").slice(0, -2);
+    const style_width = +getComputedStyle(canvas).getPropertyValue("width").slice(0, -2);
+    //console.log("dpi: " + dpi);
+    canvas.height = style_height * dpi;
+    canvas.width = style_width * dpi;
+    canvas.style.height = style_height + 'px';
+    canvas.style.width = style_width + 'px';
+    canvas.getContext('2d').setTransform(dpi, 0, 0, dpi, 0, 0);
   }
 
   buildChartCanvas(links: Edge[]) {
@@ -63,21 +63,25 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     const nodes: Vertex[] = data[0];
     const edges: Edge[] = data[1];
     const nodeById = d3.map(nodes, function (d) { return d.id.toString(); });
+    const canvas = this.canvasElement.nativeElement;
+    const context = canvas.getContext("2d");
+    const self = this;
+
+    self.setCanvasDpi(canvas, window.devicePixelRatio);
+    context.setTransform(DawgChartComponent.DPI, 0, 0, DawgChartComponent.DPI, 0, 0);
 
     edges.forEach(e => {
       e.source = nodeById.get(e.source.id.toString());
       e.target = nodeById.get(e.target.id.toString());
     });
 
-    var canvas = this.canvasElement.nativeElement,
-      context = canvas.getContext("2d"),
-      width = canvas.width,
+    let width = canvas.width,
       height = canvas.height;
 
     var simulation = d3.forceSimulation()
       .nodes(nodes)
-      //.force("link", d3.forceLink<Vertex, Edge>(edges).distance(80))
-      .force("link", d3.forceLink<Vertex, Edge>(edges).distance(d => 80))
+      .force("link", d3.forceLink<Vertex, Edge>(edges).distance(80))
+      //.force("link", d3.forceLink<Vertex, Edge>(edges).distance(d => 80))
       .force('collide', d3.forceCollide().radius(15).strength(5).iterations(1))
       .force('charge', d3.forceManyBody().strength(-340).distanceMax(200).distanceMin(80))
       //.force('charge', (d:any) => d.r * d.r * 1000 * -1.3)
@@ -91,19 +95,13 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
         .on("start", dragstarted)
         .on("drag", dragged)
         .on("end", dragended));
-    
-    let self = this;
-
-    
-    self.setCanvasDpi(canvas);
-    context.setTransform(DawgChartComponent.DPI, 0, 0, DawgChartComponent.DPI, 0, 0);
 
     function ticked() {
       context.clearRect(0, 0, width, height);
 
       context.beginPath();
       edges.forEach(drawLink);
-    
+
       // regular nodes
       nodes.filter(n => !n.isRoot && !n.endOfWord).forEach((n) => drawNode(n, "#ccc"));
       // root node
@@ -134,36 +132,33 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
     }
 
 
-    function drawCurveLink(fromx, fromy, tox, toy, angle, linknum, ctx) {
+    function drawCurveLink(fromx, fromy, tox, toy, linknum, ctx) {
       const weight = 2;
       const dx = tox - fromx,
-          dy = toy - fromy;
-        const qx = dy / weight * linknum, //linknum is defined above
-          qy = -dx / weight * linknum;
-        const qx1 = (fromx + (dx / 2)) + qx,
-          qy1 = (fromy + (dy / 2)) + qy;
-      
+        dy = toy - fromy;
+      const qx = dy / weight * linknum,
+        qy = -dx / weight * linknum;
+      const qx1 = (fromx + (dx / 2)) + qx,
+        qy1 = (fromy + (dy / 2)) + qy;
+
       ctx.beginPath();
       ctx.moveTo(fromx, fromy);
       ctx.quadraticCurveTo(qx1, qy1, tox, toy);
       ctx.strokeStyle = "#666";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-
-    }
-
-    function drawArrow(fromx, fromy, tox, toy, angle, ctx) {
-      //variables to be used when creating the arrow
-      var headlen = 10;
-
-      //starting path of the arrow from the start square to the end square and drawing the stroke
-      ctx.beginPath();
-      ctx.moveTo(fromx, fromy);
-      ctx.lineTo(tox, toy);
-      ctx.strokeStyle = "#666";
       ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      return { x: qx1, y: qy1 };
+    }
+
+    function drawArrow(ctx, fromx, fromy, tox, toy, offset) {
+      var angle = Math.atan2(toy - fromy, tox - fromx);
+      var headlen = 10;
+
+      tox = tox + offset * Math.cos(angle - Math.PI);
+      toy = toy + offset * Math.sin(angle - Math.PI);
+      fromx = fromx - offset * Math.cos(angle - Math.PI);
+      fromy = fromy - offset * Math.sin(angle - Math.PI);
 
       //starting a new path from the head of the arrow to one of the sides of the point
       ctx.beginPath();
@@ -185,40 +180,86 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
       ctx.fill();
     }
 
-    function drawLink(d) {
+    function drawLine(ctx, fromx, fromy, tox, toy) {
+      ctx.beginPath();
+      ctx.moveTo(fromx, fromy);
+      ctx.lineTo(tox, toy);
+      ctx.strokeStyle = "#666";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
-      var angle = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
-      var tox = d.target.x + 10 * Math.cos(angle - Math.PI);
-      var toy = d.target.y + 10 * Math.sin(angle - Math.PI);
+      //draws the paths created above
+      ctx.strokeStyle = "#666";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = "#666";
+      ctx.fill();
+    }
 
-      var fromx = d.source.x - 10 * Math.cos(angle - Math.PI);
-      var fromy = d.source.y - 10 * Math.sin(angle - Math.PI);
+    function getCurvePoint(start, control, end, t) {
 
-      // context.moveTo(d.source.x, d.source.y);
-      // context.lineTo(d.target.x, d.target.y);
-      //drawArrow(d.source.x, d.source.y, d.target.x, d.target.y, context);
-      drawArrow(fromx, fromy, tox, toy, angle, context);
-      //drawCurveLink(d.source.x, d.source.y, d.target.x, d.target.y, angle, d.linknum, context);
+      var c1x = start.x + (control.x - start.x) * t;
+      var c1y = start.y + (control.y - start.y) * t;
+      var c2x = control.x + (end.x - control.x) * t;
+      var c2y = control.y + (end.y - control.y) * t;
+      var tx = c1x + (c2x - c1x) * t;
+      var ty = c1y + (c2y - c1y) * t;
 
-      context.font = "20px sans-serif";
-      context.fillStyle = "#000";
+      return { x: tx, y: ty };
+    }
+
+    function drawText(ctx, text, start, control, end) {
+      let textAngle = Math.atan2(end.y - start.y, end.x - start.x);
+
+      const textPos: any = Object.assign({}, ...['x', 'y'].map(c => ({
+        [c]: start[c] + (end[c] - start[c]) / 2 // calc middle point
+      })));
+
+      if (textAngle > Math.PI / 2) textAngle = -(Math.PI - textAngle);
+      if (textAngle < -Math.PI / 2) textAngle = -(-Math.PI - textAngle);
+
+      let tx = 0;
+      let ty = 0;
+      
+      if (control && control.x && control.y) {
+        var tp = getCurvePoint(start, control, end, .5);
+        tx = tp.x;
+        ty = tp.y;
+      } else {
+        tx = textPos.x;
+        ty = textPos.y;
+      }
+      
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.rotate(textAngle);
+
+      ctx.font = "20px sans-serif";
+      ctx.fillStyle = "#000";
       //textAlign supports: start, end, left, right, center
-      context.textAlign = "center"
+      ctx.textAlign = "center"
       //textBaseline supports: top, hanging, middle, alphabetic, ideographic bottom
-      context.textBaseline = "hanging"
+      ctx.textBaseline = "hanging"
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    }
+
+    function drawLink(d) {
+      const start = d.source;
+      const end = d.target;
+      var control = null;
+      var ap = null;
      
-      context.fillText(d.key, ((d.source.x + d.target.x) / 2), ((d.source.y + d.target.y) / 2) + 10);
-      //context.fillText(d.key, d.source.x, d.source.y);
-      let cx = d.source.x * Math.cos(angle - Math.PI);
-      let cy = d.source.y * Math.sin(angle - Math.PI);
-      let height = Math.abs(d.source.y - d.target.y);
-      let width = Math.abs(d.source.x - d.target.x);
+      //drawLine(context, d.source.x, d.source.y, d.target.x, d.target.y);
+      control = drawCurveLink(d.source.x, d.source.y, d.target.x, d.target.y, d.linknum, context);
+      
+      if (control)
+        ap = getCurvePoint(start, control, end, .9);
 
-      //console.log("cx: " + cx + " cy: " + cy + " x: " + d.source.x + " y: " + d.source.y + " angle: " + angle);
-
-      //context.fillText(d.key, ((fromx + tox) / 2), ((fromy + toy) / 2));
-      //context.fillText(d.key, d.source.x, d.source.y);
-      //console.log(slope);
+      var arrowBegin = control ? { x: ap.x, y: ap.y} : {x: start.x, y: start.y};
+      drawArrow(context, arrowBegin.x, arrowBegin.y, end.x, end.y, 10);
+      //drawArrow(context, start.x, start.y, end.x, end.y, 10);
+      drawText(context, d.key, start, control, end);
     }
 
     function drawNode(d, color) {
@@ -227,7 +268,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
       context.beginPath();
 
       context.moveTo(d.x + 10, d.y);
-      context.arc(d.x, d.y, 10, 0, 2 * Math.PI); 
+      context.arc(d.x, d.y, 10, 0, 2 * Math.PI);
 
       context.fillStyle = color;
       context.strokeStyle = "#333";
