@@ -9,4 +9,8 @@
     <PackageReference Include="newtonsoft.json" Version="12.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\JaySilk.Dawg.Lib\JaySilk.Dawg.Lib.csproj" />
+  </ItemGroup>
+
 </Project>

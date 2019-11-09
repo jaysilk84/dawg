@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 
 using Newtonsoft.Json;
+using JaySilk.Dawg.Lib;
 
 namespace JaySilk.Dawg.Cli
 {
@@ -45,10 +46,12 @@ namespace JaySilk.Dawg.Cli
         }
 
         static void Main(string[] args) {
-            var root = new Node();
-            var uncheckedNodes = new List<(Node, char, Node)>();
-            var minimizedNodes = new HashSet<Node>();
-            var previousWord = "";
+            var dawg = new Lib.Dawg();
+
+            // var root = new Node();
+            // var uncheckedNodes = new List<(Node, char, Node)>();
+            // var minimizedNodes = new HashSet<Node>();
+            // var previousWord = "";
             const string TargetFile = "enable.txt";
             const string DestinationFile = "output.json";
             const int WordCount = 100;
@@ -60,16 +63,27 @@ namespace JaySilk.Dawg.Cli
             //var words = new string[] { "blip", "cat", "catnip", "cats" };
             //var words = new string[] { "cat", "catnip", "zcatnip" };
 
-            //foreach (var w in words) {
-            //    insert(w);
-            //}
+            // foreach (var w in words) {
+            //    dawg.Insert(w);
+            // }
+
+            // dawg.Finish();
+
+            // printMap(dawg.Root);
+            // //Console.WriteLine($"Nodes {dawg.Nodes.Count()}");
+            // foreach (var n in dawg.Nodes)
+            //     Console.WriteLine($"{n.Id}");
+            // Console.WriteLine($"Node count {dawg.NodeCount}");
+            // Console.WriteLine($"Edge count {dawg.EdgeCount}");
+
+            // return;
 
             using (var r = new StreamReader(TargetFile)) {
                 var count = 0;
                 var batch = BatchSize;
 
                 while (r.Peek() >= 0 && count < WordCount) {
-                    if (rand.Next(1, 20001) > 1 && batch == 0) {
+                    if (rand.Next(1, 2001) > 1 && batch == 0) {
                         r.ReadLine();
                         continue;
                     }
@@ -77,17 +91,21 @@ namespace JaySilk.Dawg.Cli
                     if (batch == 0) batch = BatchSize;
 
                     var word = r.ReadLine();
-                    insert(word);
+                    dawg.Insert(word);
                     count++;
                     batch--;
 
                     Console.WriteLine($"Adding {word} ({count}/{WordCount})");
                 }
 
-                Console.WriteLine($"Wrote {count} of {WordCount} words. Node count: {minimizedNodes.Count}");
+                Console.WriteLine($"Wrote {count} of {WordCount} words. Node count: {dawg.NodeCount}");
             }
 
-            minimize(0);
+            dawg.Finish();
+            Console.WriteLine($"Final Node count {dawg.NodeCount}");
+           Console.WriteLine($"Edge count {dawg.EdgeCount}");
+
+//            minimize(0);
 
             // foreach (var w in words) {
 
@@ -110,37 +128,37 @@ namespace JaySilk.Dawg.Cli
             //printJson(root);
             //printMap(root);
             //printMinimized();
-            Console.WriteLine(serializeMap(root));
+            // Console.WriteLine(serializeMap(root));
 
 
-            string serialize(Node root) {
-                var settings = new JsonSerializerSettings();
-                settings.Formatting = Formatting.Indented;
-                settings.ContractResolver = new DictionaryAsArrayResolver();
+            // string serialize(Node root) {
+            //     var settings = new JsonSerializerSettings();
+            //     settings.Formatting = Formatting.Indented;
+            //     settings.ContractResolver = new DictionaryAsArrayResolver();
 
-                return JsonConvert.SerializeObject(root, settings);
-            }
+            //     return JsonConvert.SerializeObject(root, settings);
+            // }
 
-            void insert(string word) {
-                var commonPrefix = 0;
-                foreach (var i in Enumerable.Range(0, Math.Min(word.Length, previousWord.Length))) {
-                    if (word[i] != previousWord[i]) break;
-                    commonPrefix++;
-                }
+            // void insert(string word) {
+            //     var commonPrefix = 0;
+            //     foreach (var i in Enumerable.Range(0, Math.Min(word.Length, previousWord.Length))) {
+            //         if (word[i] != previousWord[i]) break;
+            //         commonPrefix++;
+            //     }
 
-                minimize(commonPrefix);
+            //     minimize(commonPrefix);
 
-                var node = (uncheckedNodes.Count() == 0) ? root : uncheckedNodes[^1].Item3;
-                foreach (var c in word.Substring(commonPrefix)) {
-                    var next = new Node();
-                    node.Children[c] = next;
-                    uncheckedNodes.Add((node, c, next));
-                    node = next;
-                }
+            //     var node = (uncheckedNodes.Count() == 0) ? root : uncheckedNodes[^1].Item3;
+            //     foreach (var c in word.Substring(commonPrefix)) {
+            //         var next = new Node();
+            //         node.Children[c] = next;
+            //         uncheckedNodes.Add((node, c, next));
+            //         node = next;
+            //     }
 
-                node.EndOfWord = true;
-                previousWord = word;
-            }
+            //     node.EndOfWord = true;
+            //     previousWord = word;
+            // }
 
             void printMap(Node root) {
                 var stack = new Stack<Node>();
@@ -168,57 +186,57 @@ namespace JaySilk.Dawg.Cli
                 }
             }
 
-            string serializeMap(Node root) {
-                var stack = new Stack<Node>();
-                var done = new HashSet<int>();
-                var links = new List<Edge>();
+            // string serializeMap(Node root) {
+            //     var stack = new Stack<Node>();
+            //     var done = new HashSet<int>();
+            //     var links = new List<Edge>();
 
-                stack.Push(root);
+            //     stack.Push(root);
 
-                while (stack.Count() > 0) {
-                    var node = stack.Pop();
+            //     while (stack.Count() > 0) {
+            //         var node = stack.Pop();
 
-                    if (done.Contains(node.Id)) continue;
+            //         if (done.Contains(node.Id)) continue;
 
-                    if (node.Children.Count == 0)
-                        links.Add(new Edge(new Vertex(node), null, null));
+            //         if (node.Children.Count == 0)
+            //             links.Add(new Edge(new Vertex(node), null, null));
 
-                    foreach (var (key, child) in node.Children.OrderByDescending(x => x.Key)) {
-                        links.Add(new Edge(new Vertex(node), new Vertex(child), key));
-                        stack.Push(child);
-                        done.Add(node.Id);
-                    }
-                }
+            //         foreach (var (key, child) in node.Children.OrderByDescending(x => x.Key)) {
+            //             links.Add(new Edge(new Vertex(node), new Vertex(child), key));
+            //             stack.Push(child);
+            //             done.Add(node.Id);
+            //         }
+            //     }
 
-                using (StreamWriter writer = new StreamWriter(DestinationFile))
-                using (JsonTextWriter jsonWriter = new JsonTextWriter(writer))
-                {
-                    JsonSerializer ser = new JsonSerializer();
-                    ser.Serialize(jsonWriter, links);
-                    jsonWriter.Flush();
-                }
+            //     using (StreamWriter writer = new StreamWriter(DestinationFile))
+            //     using (JsonTextWriter jsonWriter = new JsonTextWriter(writer))
+            //     {
+            //         JsonSerializer ser = new JsonSerializer();
+            //         ser.Serialize(jsonWriter, links);
+            //         jsonWriter.Flush();
+            //     }
 
-                return "";
-                //return JsonConvert.SerializeObject(links, Formatting.Indented);
-            }
+            //     return "";
+            //     //return JsonConvert.SerializeObject(links, Formatting.Indented);
+            // }
 
-            void minimize(int downTo) {
-                for (var i = uncheckedNodes.Count() - 1; i > downTo - 1; i--) {
-                    var (parent, letter, child) = uncheckedNodes[i];
-                    if (minimizedNodes.Contains(child)) {
-                        minimizedNodes.TryGetValue(child, out Node val);
-                        parent.Children[letter] = val;
-                    }
-                    else
-                        minimizedNodes.Add(child);
+            // void minimize(int downTo) {
+            //     for (var i = uncheckedNodes.Count() - 1; i > downTo - 1; i--) {
+            //         var (parent, letter, child) = uncheckedNodes[i];
+            //         if (minimizedNodes.Contains(child)) {
+            //             minimizedNodes.TryGetValue(child, out Node val);
+            //             parent.Children[letter] = val;
+            //         }
+            //         else
+            //             minimizedNodes.Add(child);
 
-                    uncheckedNodes.Remove(uncheckedNodes[^1]);
-                }
-            }
+            //         uncheckedNodes.Remove(uncheckedNodes[^1]);
+            //     }
+            // }
 
-            void printJson(Node root) {
-                Console.WriteLine(serialize(root));
-            }
+            // void printJson(Node root) {
+            //     Console.WriteLine(serialize(root));
+            // }
 
             // void printList(Node root, int level = 1) {
             //     Console.WriteLine($"{level}:{root.Key}");
