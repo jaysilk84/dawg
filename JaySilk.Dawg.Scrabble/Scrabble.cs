@@ -25,8 +25,12 @@ namespace JaySilk.Dawg.Scrabble
         //public Dictionary<Point, Square> Anchors = new Dictionary<Point, Square>();
         public HashSet<Point> Anchors = new HashSet<Point>();
         public string Rack = "SVGFKTO";
-        public Scrabble() {
-            BuildDawg();
+        
+        public Scrabble(Lib.Dawg wordList = null) {
+            if (wordList == null)
+                BuildDawg();
+            else 
+                dawg = wordList;
 
             BuildBlankBoard();
 
@@ -85,7 +89,7 @@ namespace JaySilk.Dawg.Scrabble
                 ProcessRow(transposedBoard, r);
             }
 
-            Console.WriteLine("Found " + wordCount + " words");
+            //Console.WriteLine("Found " + wordCount + " words");
             // ProcessRow(Board, 2);
             // ProcessRow(transposedBoard, 2);
         }
@@ -165,7 +169,7 @@ namespace JaySilk.Dawg.Scrabble
                 }
             }
         }
-        private static int wordCount = 0;
+        //private static int wordCount = 0;
         private void LegalMove(string word, Square anchor, Square endSquare, Rack rack) {
             Square[,] tempBoard = CopyBoard(Board);
             //Square[,] tempBoard = Transpose(Board);
@@ -197,10 +201,10 @@ namespace JaySilk.Dawg.Scrabble
                     r--;
                 }
             }
-            wordCount++;
-            Console.WriteLine($"Word: {word} End Row: {endSquare.Position.Y} End Col: {endSquare.Position.X} Anchor Row: {anchor.Position.Y} Anchor Col: {anchor.Position.X}");
-            PrintBoard(tempBoard);
-            Console.WriteLine($"Rack letters: {new string(rack.Letters.ToArray())}");
+            //wordCount++;
+            //Console.WriteLine($"Word: {word} End Row: {endSquare.Position.Y} End Col: {endSquare.Position.X} Anchor Row: {anchor.Position.Y} Anchor Col: {anchor.Position.X}");
+            //PrintBoard(tempBoard);
+            //Console.WriteLine($"Rack letters: {new string(rack.Letters.ToArray())}");
             //Console.WriteLine(word);
         }
 
@@ -328,6 +332,19 @@ namespace JaySilk.Dawg.Scrabble
             Console.WriteLine($"Anchors: {Anchors.Count}");
         }
 
+        public List<SquareModel> SerializeBoard(Square[,] board) {
+            var result = new List<SquareModel>();
+
+            for (var r = 0; r < MAX_ROWS; r++) 
+                for (var c = 0; c < MAX_COLS; c++) {
+                    var square = board[r, c];
+                    if (square.Tile.HasValue || square.IsAnchor)
+                        result.Add(new SquareModel { Tile = square.Tile, IsAnchor = square.IsAnchor, Position = square.Position});
+                }
+
+            return result;
+        }
+
         public Square[,] CopyBoard(Square[,] board) {
             var newBoard = new Square[MAX_ROWS, MAX_COLS];
             for (var r = 0; r < MAX_ROWS; r++)
@@ -335,6 +352,8 @@ namespace JaySilk.Dawg.Scrabble
                     newBoard[r, c] = new Square(board[r, c]);
             return newBoard;
         }
+
+
 
         public Square[,] Transpose(Square[,] board) {
             var newBoard = new Square[MAX_ROWS, MAX_COLS];
@@ -348,6 +367,12 @@ namespace JaySilk.Dawg.Scrabble
             return newBoard;
         }
 
+    }
+
+    public class SquareModel {
+        public Point Position {get;set;}
+        public char? Tile {get;set;}
+        public bool IsAnchor {get;set;}
     }
 
     public class Square

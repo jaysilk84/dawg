@@ -32,5 +32,15 @@ namespace JaySilk.Dawg.Api.Data
             }
         }
 
+        public IEnumerable<string> GetWords() {
+            using var r = new StreamReader(TargetFile);
+
+            while (r.Peek() >= 0)
+                yield return r.ReadLine();
+
+            r.Close();
+        }
     }
+
+
 }

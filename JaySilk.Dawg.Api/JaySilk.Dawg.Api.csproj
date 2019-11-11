@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JaySilk.Dawg.Lib\JaySilk.Dawg.Lib.csproj" />
+    <ProjectReference Include="..\JaySilk.Dawg.Scrabble\JaySilk.Dawg.Scrabble.csproj" />
   </ItemGroup>
 
   <ItemGroup>
