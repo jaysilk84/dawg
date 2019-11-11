@@ -18,6 +18,7 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
   @ViewChild('chart', { static: false })
   chart: ElementRef;
+  
   private static readonly DPI: number = window.devicePixelRatio;
 
   @ViewChild('canvas', { static: false })
@@ -26,11 +27,12 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
   constructor(private graph: GraphService, private route: ActivatedRoute, private router: Router) { }
 
   ngOnInit() {
+
   }
 
   ngAfterViewInit() {
-    this.router.events.subscribe(e => {
-      if (e instanceof NavigationEnd) {
+    // this.router.events.subscribe(e => {
+    //   if (e instanceof NavigationEnd) {
         this.route.queryParamMap.pipe(
           switchMap((params) => {
             const numwords: number = +params.get("numwords") || 10;
@@ -40,8 +42,8 @@ export class DawgChartComponent implements OnInit, AfterViewInit {
 
         )//.subscribe((data) => this.buildChart(data));
           .subscribe((data) => this.buildChartCanvas(data));
-      }
-    });
+      //}
+    //});
 
     //this.graph.messageReceived.subscribe((data: Edge[]) => this.buildChart(data));
 
