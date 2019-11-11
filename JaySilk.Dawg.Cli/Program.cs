@@ -46,6 +46,17 @@ namespace JaySilk.Dawg.Cli
         }
 
         static void Main(string[] args) {
+     
+            var s = new Scrabble();
+            s.PrintBoard(s.Board);
+            Console.WriteLine("");
+            s.PrintBoard(s.Transpose(s.Board));
+     
+     
+     
+            return;
+
+
             var dawg = new Lib.Dawg();
 
             // var root = new Node();
