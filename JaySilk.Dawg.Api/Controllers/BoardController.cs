@@ -14,12 +14,16 @@ namespace JaySilk.Dawg.Api.Controllers
     [Route("scrabble/[controller]")]
     public class BoardController : ControllerBase
     {
-        static Lib.Dawg WordList = BuildDawg();
+        public static Lib.Dawg WordList = BuildDawg(); // Dangerous: share this for now
         
         [HttpGet]
-        public IEnumerable<SquareModel> Get() {
+        public ActionResult Get() {
             var scrabble = new Scrabble.Scrabble(WordList);
-            return scrabble.SerializeBoard(scrabble.Board);
+            return Ok(scrabble.SerializeBoard(scrabble.Board).Select(s => new {
+                position = new {x = s.Position.X, y =s.Position.Y},
+                isAnchor = s.IsAnchor,
+                tile = s.Tile
+            }));
         }
 
         private static Lib.Dawg BuildDawg() {

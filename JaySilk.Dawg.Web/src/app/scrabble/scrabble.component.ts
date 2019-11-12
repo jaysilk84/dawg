@@ -1,4 +1,7 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { ScrabbleService } from '../services/scrabble.service';
+import { Move } from '../models/move.model';
+import { Square } from '../models/square.model';
 
 @Component({
   selector: 'app-scrabble',
@@ -7,11 +10,12 @@ import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angula
 })
 export class ScrabbleComponent implements OnInit, AfterViewInit {
   private static readonly CELL_SIZE: number = 25;
+  private gridCounter = 1;
 
   @ViewChild('container', { static: false })
   container: ElementRef<HTMLDivElement>;
 
-  constructor() {
+  constructor(private scrabbleService: ScrabbleService) {
   }
 
   ngOnInit() {
@@ -19,23 +23,46 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
 
   ngAfterViewInit() {
     this.createGrid(this.container, 15, "1");
-    this.createGrid(this.container, 15, "2");
-    this.createGrid(this.container, 15, "3");
-    this.createGrid(this.container, 15, "4");
-    this.createGrid(this.container, 15, "5");
-    this.createGrid(this.container, 15, "6");
-    this.createGrid(this.container, 15, "7");
-
-    this.setOutlineColor("1", 1, 1, "red");
-    this.setText("1", 1, 1, "J");
-    this.setBackground("1", 1, 1, 5, 250, 5);
-
-    this.setOutlineColor("3", 1, 1, "red");
-    this.setText("3", 1, 1, "J");
-    this.setBackground("7", 1, 1, 5, 250, 5);
+    this.scrabbleService.getBoard().subscribe(board => {
+      this.initBoard(board, "1");
+      this.scrabbleService.getMoves().subscribe(moves => {
+        moves.forEach(m => {
+          this.gridCounter+=1;
+          this.createGrid(this.container, 15, this.gridCounter.toString());
+          this.initBoard(board, this.gridCounter.toString());
+          this.processMove(m, this.gridCounter.toString());
+        });
+      });
+    });
   }
 
-  private createGrid(element: ElementRef<HTMLDivElement>, gridSize: number, id: string) {
+  private initBoard(board: Square[], gridId: string) {
+    board.forEach(s => {
+      if (s.isAnchor)
+        this.setOutlineColor(gridId, s.position.y, s.position.x, "blue");
+      this.setText(gridId, s.position.y, s.position.x, s.tile);
+    });
+  }
+
+  private processMove(move: Move, gridId: string) {
+    if (move.start.y == move.end.y) {
+      const r = move.start.y;
+      let c = move.start.x;
+      for (let i = 0; i < move.word.length; i++) {
+        this.setText(gridId, r, c, move.word[i], "red");
+        c++;
+      }
+    } else {
+      let r = move.start.y;
+      const c = move.start.x;
+      for (let i = 0; i < move.word.length; i++) {
+        this.setText(gridId, r, c, move.word[i], "red");
+        r++;
+      }
+    }
+  }
+
+  private createGrid(container: ElementRef<HTMLDivElement>, gridSize: number, id: string) {
     const parent = document.createElement("div");
     parent.id = id;
     parent.classList.add("grid");
@@ -51,7 +78,7 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
         parent.appendChild(cell);
       }
 
-    element.nativeElement.appendChild(parent);
+    container.nativeElement.appendChild(parent);
   }
 
   private setOutlineColor(id: string, row: number, col: number, color: string) {
@@ -64,11 +91,12 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
     const grid = document.getElementById(id);
     (<HTMLDivElement>grid.getElementsByClassName(classSelector)[0]).style.backgroundColor = "rgba(" + r + "," + g + "," + b + ",.2)";
   }
-  private setText(id: string, row: number, col: number, text: string) {
+  private setText(id: string, row: number, col: number, text: string, color: string = "#000") {
     const classSelector = "row" + row + " col" + col;
     const grid = document.getElementById(id);
     const element = <HTMLDivElement>grid.getElementsByClassName(classSelector)[0];
     element.innerText = text;
     element.style.lineHeight = element.clientHeight + "px";
+    element.style.color = color;
   }
 }

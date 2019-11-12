@@ -24,12 +24,13 @@ namespace JaySilk.Dawg.Scrabble
         public Square[,] Board = new Square[MAX_ROWS, MAX_COLS];
         //public Dictionary<Point, Square> Anchors = new Dictionary<Point, Square>();
         public HashSet<Point> Anchors = new HashSet<Point>();
+        public List<WordModel> PlayableWords = new List<WordModel>();
         public string Rack = "SVGFKTO";
-        
+
         public Scrabble(Lib.Dawg wordList = null) {
             if (wordList == null)
                 BuildDawg();
-            else 
+            else
                 dawg = wordList;
 
             BuildBlankBoard();
@@ -55,22 +56,22 @@ namespace JaySilk.Dawg.Scrabble
             // Board[3, 2].Tile = 'I';
             // Board[3, 3].Tile = 'E';
 
-            Board[6, 3].Tile = 'T';
-            Board[6, 4].Tile = 'U';
-            Board[6, 5].Tile = 'B';
+            Board[7, 3].Tile = 'T';
+            Board[7, 4].Tile = 'U';
+            Board[7, 5].Tile = 'B';
 
-            Board[7, 4].Tile = 'S';
-            Board[7, 5].Tile = 'A';
-            Board[7, 6].Tile = 'I';
-            Board[7, 7].Tile = 'N';
-            Board[7, 8].Tile = 'T';
+            Board[8, 4].Tile = 'S';
+            Board[8, 5].Tile = 'A';
+            Board[8, 6].Tile = 'I';
+            Board[8, 7].Tile = 'N';
+            Board[8, 8].Tile = 'T';
 
-            Board[6, 8].Tile = 'E';
-            Board[6, 9].Tile = 'N';
-            Board[6, 10].Tile = 'A';
-            Board[6, 11].Tile = 'M';
-            Board[6, 12].Tile = 'E';
-            Board[6, 13].Tile = 'L';
+            Board[7, 8].Tile = 'E';
+            Board[7, 9].Tile = 'N';
+            Board[7, 10].Tile = 'A';
+            Board[7, 11].Tile = 'M';
+            Board[7, 12].Tile = 'E';
+            Board[7, 13].Tile = 'L';
 
             var transposedBoard = Transpose(Board);
             BuildAnchorList(Board);
@@ -170,6 +171,7 @@ namespace JaySilk.Dawg.Scrabble
             }
         }
         //private static int wordCount = 0;
+
         private void LegalMove(string word, Square anchor, Square endSquare, Rack rack) {
             Square[,] tempBoard = CopyBoard(Board);
             //Square[,] tempBoard = Transpose(Board);
@@ -187,6 +189,7 @@ namespace JaySilk.Dawg.Scrabble
                     }
                     c--;
                 }
+                PlayableWords.Add(new WordModel { Word = word, Start = new Point(c, r - 1), End = new Point(endSquare.AbsPosition.X - 2, endSquare.AbsPosition.Y - 1) });
             }
             else {
                 // vertical play
@@ -200,6 +203,7 @@ namespace JaySilk.Dawg.Scrabble
                     }
                     r--;
                 }
+                PlayableWords.Add(new WordModel { Word = word, Start = new Point(c - 1, r), End = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - 2) });
             }
             //wordCount++;
             //Console.WriteLine($"Word: {word} End Row: {endSquare.Position.Y} End Col: {endSquare.Position.X} Anchor Row: {anchor.Position.Y} Anchor Col: {anchor.Position.X}");
@@ -335,11 +339,12 @@ namespace JaySilk.Dawg.Scrabble
         public List<SquareModel> SerializeBoard(Square[,] board) {
             var result = new List<SquareModel>();
 
-            for (var r = 0; r < MAX_ROWS; r++) 
+            for (var r = 0; r < MAX_ROWS; r++)
                 for (var c = 0; c < MAX_COLS; c++) {
                     var square = board[r, c];
-                    if (square.Tile.HasValue || square.IsAnchor)
-                        result.Add(new SquareModel { Tile = square.Tile, IsAnchor = square.IsAnchor, Position = square.Position});
+                    if (square.Tile.HasValue || square.IsAnchor) {
+                        result.Add(new SquareModel { Tile = square.Tile, IsAnchor = square.IsAnchor, Position = new Point(square.Position.X - 1, square.Position.Y - 1) });
+                    }
                 }
 
             return result;
@@ -369,10 +374,18 @@ namespace JaySilk.Dawg.Scrabble
 
     }
 
-    public class SquareModel {
-        public Point Position {get;set;}
-        public char? Tile {get;set;}
-        public bool IsAnchor {get;set;}
+    public class WordModel
+    {
+        public Point Start { get; set; }
+        public Point End { get; set; }
+        public string Word { get; set; }
+    }
+
+    public class SquareModel
+    {
+        public Point Position { get; set; }
+        public char? Tile { get; set; }
+        public bool IsAnchor { get; set; }
     }
 
     public class Square
