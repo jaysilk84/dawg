@@ -26,6 +26,19 @@ namespace JaySilk.Dawg.Api.Controllers
             }));
         }
 
+        [HttpGet("rules")]
+        public ActionResult GetLetters() {
+            return Ok(new { 
+                letters = Scrabble.Score.Letters,
+                bonuses = Scrabble.Score.Bonuses.Select(b => new {
+                    position = new { x = b.Key.X, y = b.Key.Y},
+                    value = b.Value.Value,
+                    type = b.Value.Type
+                })
+            });
+                
+        }
+
         private static Lib.Dawg BuildDawg() {
             var db = new Data.Database();
             var dawg = new Lib.Dawg();

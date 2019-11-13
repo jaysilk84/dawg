@@ -119,6 +119,8 @@ namespace JaySilk.Dawg.Scrabble
             for (var r = 0; r < MAX_ROWS; r++)
                 for (var c = 0; c < MAX_COLS; c++) {
                     Board[r, c] = new Square(null, new Point(c, r));
+                    if (Score.Bonuses.TryGetValue(new Point(c-1, r-1), out var m))
+                        Board[r, c].Multiplier = m;
                     if (r == 0 || r == MAX_ROWS - 1 || c == 0 || c == MAX_COLS - 1) {
                         Board[r, c].IsBorderSquare = true;
                         Board[r, c].CrossChecks.Clear();
@@ -172,39 +174,65 @@ namespace JaySilk.Dawg.Scrabble
         }
         //private static int wordCount = 0;
 
-        private void LegalMove(string word, Square anchor, Square endSquare, Rack rack) {
+        private void LegalMove(string word, Square anchor, Square endSquare, Rack rack, Square[,] board) {
             Square[,] tempBoard = CopyBoard(Board);
-            //Square[,] tempBoard = Transpose(Board);
+            List<Square> tiles = new List<Square>();
+
             // NOTE: endsquare is one position too far
-            //if (endSquare.)
-            if (anchor.AbsPosition.Y == endSquare.AbsPosition.Y) {
+            // if (anchor.AbsPosition.Y == endSquare.AbsPosition.Y) {
+            if (anchor.Position.Y == endSquare.Position.Y) {
                 // horizontal play
-                var c = endSquare.AbsPosition.X - 1;
-                var r = endSquare.AbsPosition.Y;
+                var c = endSquare.Position.X - 1;
+                var r = endSquare.Position.Y;
                 foreach (var l in word.Reverse()) {
-                    var s = tempBoard[r, c];
-                    if (!s.IsOccupied) {
+                    var s = new Square(board[r, c]); // dont mutate
+                    if (!s.IsOccupied)
                         s.Tile = l;
-                        s.Color = ConsoleColor.Red;
-                    }
+
+                    tiles.Add(s);
+                    // if (!s.IsOccupied) {
+                    //     s.Tile = l;
+                    //     s.Color = ConsoleColor.Red;
+                    // }
                     c--;
                 }
-                PlayableWords.Add(new WordModel { Word = word, Start = new Point(c, r - 1), End = new Point(endSquare.AbsPosition.X - 2, endSquare.AbsPosition.Y - 1) });
+                // PlayableWords.Add(new WordModel
+                // {
+                //     Score = Score.ScoreWord(tiles),
+                //     Word = word,
+                //     //Start = new Point(c, r - 1),
+                //     Start = new Point(endSquare.AbsPosition.X - (word.Length - 2), endSquare.AbsPosition.Y - 1),
+                //     End = new Point(endSquare.AbsPosition.X - 2, endSquare.AbsPosition.Y - 1)
+                // });
             }
             else {
                 // vertical play
-                var c = endSquare.AbsPosition.X;
-                var r = endSquare.AbsPosition.Y - 1;
+                var c = endSquare.Position.X;
+                var r = endSquare.Position.Y - 1;
                 foreach (var l in word.Reverse()) {
-                    var s = tempBoard[r, c];
-                    if (!s.IsOccupied) {
+                    var s = new Square(board[r, c]);
+                    if (!s.IsOccupied)
                         s.Tile = l;
-                        s.Color = ConsoleColor.Red;
-                    }
+
+                    tiles.Add(s);
+                    // if (!s.IsOccupied) {
+                    //     s.Tile = l;
+                    //     s.Color = ConsoleColor.Red;
+                    // }
                     r--;
                 }
-                PlayableWords.Add(new WordModel { Word = word, Start = new Point(c - 1, r), End = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - 2) });
+                // PlayableWords.Add(new WordModel
+                // {
+                //     Score = Score.ScoreWord(tiles),
+                //     Word = word,
+                //     //Start = new Point(c - 1, r),
+                //     Start = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - (word.Length - 2)),
+                //     End = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - 2)
+                // });
             }
+
+            RecordWord(word, tiles, endSquare, endSquare.AbsPosition.X == anchor.AbsPosition.X);
+
             //wordCount++;
             //Console.WriteLine($"Word: {word} End Row: {endSquare.Position.Y} End Col: {endSquare.Position.X} Anchor Row: {anchor.Position.Y} Anchor Col: {anchor.Position.X}");
             //PrintBoard(tempBoard);
@@ -212,8 +240,27 @@ namespace JaySilk.Dawg.Scrabble
             //Console.WriteLine(word);
         }
 
+        private void RecordWord(string word, List<Square> tiles, Square endSquare, bool vertical) {
+            if (vertical)
+                PlayableWords.Add(new WordModel
+                {
+                    Score = Score.ScoreWord(tiles),
+                    Word = word,
+                    Start = new Point(endSquare.AbsPosition.X - 1, (endSquare.AbsPosition.Y - word.Length) - 1),
+                    End = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - 2)
+                });
+            else
+                PlayableWords.Add(new WordModel
+                {
+                    Score = Score.ScoreWord(tiles),
+                    Word = word,
+                    Start = new Point((endSquare.AbsPosition.X - word.Length) - 1, endSquare.AbsPosition.Y - 1),
+                    End = new Point(endSquare.AbsPosition.X - 2, endSquare.AbsPosition.Y - 1)
+                });
+        }
+
         private bool ValidCrossChecks(Square s, char letter) {
-            return s.CrossChecks.Contains(letter);
+            return s.CrossChecks.ContainsKey(letter);
             //return (s.HasNonTrivalCrossCheck && s.CrossChecks.Contains(letter)) || !s.HasNonTrivalCrossCheck;
         }
 
@@ -221,7 +268,7 @@ namespace JaySilk.Dawg.Scrabble
         private void ExtendRight(string partialWord, Node root, Square[,] board, Square square, Rack rack, Square anchor) {
             if (!square.IsOccupied) {
                 if (root.EndOfWord && square.Position != anchor.Position)
-                    LegalMove(partialWord, anchor, square, rack);
+                    LegalMove(partialWord, anchor, square, rack, board);
                 foreach (var e in root.Children) {
                     if (rack.HasLetter(e.Key) && ValidCrossChecks(square, e.Key)) {
                         rack.Remove(e.Key);
@@ -277,7 +324,7 @@ namespace JaySilk.Dawg.Scrabble
 
         private void CalculateCrossCheck(Square[,] board, Square currentSquare) {
             var downParts = GetDownWord(board, currentSquare);
-            var crossChecks = new HashSet<char>();
+            var crossChecks = new Dictionary<char, string>();
 
             if (downParts.Prefix.Length == 0 && downParts.Suffix.Length == 0)
                 return;
@@ -286,7 +333,7 @@ namespace JaySilk.Dawg.Scrabble
             //Console.WriteLine("anchor: " + currentSquare.Position);
             foreach (var c in ALPHABET)
                 if (dawg.Exists(downParts.Prefix + c + downParts.Suffix))
-                    crossChecks.Add(c);
+                    crossChecks.Add(c, downParts.Prefix + c + downParts.Suffix);
 
             currentSquare.CrossChecks = crossChecks;
         }
@@ -374,11 +421,125 @@ namespace JaySilk.Dawg.Scrabble
 
     }
 
+    public static class Score
+    {
+        public enum MultiplierType
+        {
+            Letter,
+            Word
+        }
+
+        public class Multiplier
+        {
+            public Multiplier(Multiplier m) : this(m.Value, m.Type) { }
+            public Multiplier(short value, MultiplierType type) {
+                Type = type;
+                Value = value;
+            }
+            public MultiplierType Type { get; }
+            public short Value { get; }
+        }
+        public static readonly Dictionary<char, short> Letters = new Dictionary<char, short> {
+           { 'A', 1 }, { 'B', 4 }, { 'C', 4 }, { 'D', 2 }, { 'E', 1 },
+           { 'F', 4 }, { 'G', 3 }, { 'H', 3 }, { 'I', 1 }, { 'J', 10 },
+           { 'K', 5 }, { 'L', 2 }, { 'M', 4 }, { 'N', 2 }, { 'O', 1 },
+           { 'P', 4 }, { 'Q', 10 }, { 'R', 1 }, { 'S', 1 }, { 'T', 1 },
+           { 'U', 2 }, { 'V', 5 }, { 'W', 4 }, { 'X', 8 }, { 'Y', 3 },
+           { 'Z', 10 },
+        };
+        public static readonly Dictionary<Point, Multiplier> Bonuses = new Dictionary<Point, Multiplier> {
+            { new Point(3,0), new Multiplier(3, MultiplierType.Word)}, { new Point(6,0), new Multiplier(3, MultiplierType.Letter)},
+            { new Point(8,0), new Multiplier(3, MultiplierType.Letter)}, { new Point(11,0), new Multiplier(3, MultiplierType.Word)},
+            { new Point(2,1), new Multiplier(2, MultiplierType.Letter)}, { new Point(5,1), new Multiplier(2, MultiplierType.Word)},
+            { new Point(9,1), new Multiplier(2, MultiplierType.Word)}, { new Point(12,1), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(1,2), new Multiplier(2, MultiplierType.Letter)}, { new Point(4,2), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(10,2), new Multiplier(2, MultiplierType.Letter)}, { new Point(13,2), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(0,3), new Multiplier(3, MultiplierType.Word)}, { new Point(3,3), new Multiplier(3, MultiplierType.Letter)}, { new Point(7,3), new Multiplier(2, MultiplierType.Word)},
+            { new Point(11,3), new Multiplier(3, MultiplierType.Letter)}, { new Point(14,3), new Multiplier(3, MultiplierType.Word)},
+            { new Point(2,4), new Multiplier(2, MultiplierType.Letter)}, { new Point(6,4), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(8,4), new Multiplier(2, MultiplierType.Letter)}, { new Point(12,4), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(1,5), new Multiplier(2, MultiplierType.Word)}, { new Point(5,5), new Multiplier(3, MultiplierType.Letter)},
+            { new Point(9,5), new Multiplier(3, MultiplierType.Letter)}, { new Point(13,5), new Multiplier(2, MultiplierType.Word)},
+            { new Point(0,6), new Multiplier(3, MultiplierType.Letter)}, { new Point(4,6), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(10,6), new Multiplier(2, MultiplierType.Letter)}, { new Point(14,6), new Multiplier(3, MultiplierType.Letter)},
+            { new Point(3,7), new Multiplier(2, MultiplierType.Word)}, { new Point(11,7), new Multiplier(2, MultiplierType.Word)},
+
+            { new Point(3,14), new Multiplier(3, MultiplierType.Word)}, { new Point(6,14), new Multiplier(3, MultiplierType.Letter)},
+            { new Point(8,14), new Multiplier(3, MultiplierType.Letter)}, { new Point(11,14), new Multiplier(3, MultiplierType.Word)},
+            { new Point(2,13), new Multiplier(2, MultiplierType.Letter)}, { new Point(5,13), new Multiplier(2, MultiplierType.Word)},
+            { new Point(9,13), new Multiplier(2, MultiplierType.Word)}, { new Point(12,13), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(1,12), new Multiplier(2, MultiplierType.Letter)}, { new Point(4,12), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(10,12), new Multiplier(2, MultiplierType.Letter)}, { new Point(13,12), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(0,11), new Multiplier(3, MultiplierType.Word)}, { new Point(3,11), new Multiplier(3, MultiplierType.Letter)}, { new Point(7,11), new Multiplier(2, MultiplierType.Word)},
+            { new Point(11,11), new Multiplier(3, MultiplierType.Letter)}, { new Point(14,11), new Multiplier(3, MultiplierType.Word)},
+            { new Point(2,10), new Multiplier(2, MultiplierType.Letter)}, { new Point(6,10), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(8,10), new Multiplier(2, MultiplierType.Letter)}, { new Point(12,10), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(1,9), new Multiplier(2, MultiplierType.Word)}, { new Point(5,9), new Multiplier(3, MultiplierType.Letter)},
+            { new Point(9,9), new Multiplier(3, MultiplierType.Letter)}, { new Point(13,9), new Multiplier(2, MultiplierType.Word)},
+            { new Point(0,8), new Multiplier(3, MultiplierType.Letter)}, { new Point(4,8), new Multiplier(2, MultiplierType.Letter)},
+            { new Point(10,8), new Multiplier(2, MultiplierType.Letter)}, { new Point(14,8), new Multiplier(3, MultiplierType.Letter)},
+            
+
+        };
+
+
+        public static int ScoreWord(List<Square> squares) { // TODO: Obviously need to include multipliers
+            var total = 0;
+            var downWordTotal = 0;
+            var tripleWords = 0;
+            var doubleWords = 0;
+            foreach (var s in squares) {
+                if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 2)
+                    doubleWords++;
+                else if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 3)
+                    tripleWords++;
+
+                total += applyLetterMultiplier(Letters[s.Tile.Value], s.Multiplier);
+           
+                if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
+                    total += ScoreDownWord(downWord, s.Multiplier);
+            }
+            // word = new string(word.Reverse().ToArray());
+            // Console.WriteLine($"Word: {word} Score: {total} r: {squares[^1].AbsPosition.Y} c: {squares[^1].AbsPosition.X}");
+            // foreach (var s in squares) {
+            //     //total += Letters[s.Tile.Value];
+            //     if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
+            //         total += ScoreDownWord(downWord);
+            // }
+
+            
+            return total += (tripleWords * 3) + (doubleWords * 2) + downWordTotal;
+
+            int applyLetterMultiplier(int letterValue, Multiplier multiplier) {
+                if (multiplier == null) return letterValue;
+
+                return multiplier.Type switch {
+                    MultiplierType.Letter => letterValue * multiplier.Value,
+                    _ => letterValue
+                };
+
+            }
+        }
+
+        private static int ScoreDownWord(string word, Multiplier multiplier) {
+            var total = 0;
+            foreach (var c in word)
+                total += Letters[c];
+
+            // down words can only be affected by one multiplier and it has to be a word multiplier
+            if (multiplier != null && multiplier.Type == MultiplierType.Word)
+                total *= multiplier.Value; 
+
+            return total;
+        }
+    }
+
     public class WordModel
     {
         public Point Start { get; set; }
         public Point End { get; set; }
         public string Word { get; set; }
+        public int Score { get; set; }
     }
 
     public class SquareModel
@@ -391,16 +552,19 @@ namespace JaySilk.Dawg.Scrabble
     public class Square
     {
         public Square(Square s) { // copy constructor
-            CrossChecks = new HashSet<char>(s.CrossChecks);
+            CrossChecks = new Dictionary<char, string>(s.CrossChecks);
             Tile = s.Tile;
             Position = s.Position;
             AbsPosition = s.AbsPosition;
             Color = s.Color;
             IsBorderSquare = s.IsBorderSquare;
             IsAnchor = s.IsAnchor;
+            
+            if (s.Multiplier != null) 
+                Multiplier = new Score.Multiplier(s.Multiplier);
         }
         public Square(char? tile, Point position) {
-            CrossChecks = new HashSet<char>(Scrabble.ALPHABET);
+            CrossChecks = new Dictionary<char, string>(Scrabble.ALPHABET.Select(x => new KeyValuePair<char, string>(x, "")));
             Tile = tile;
             Position = position;
             AbsPosition = position; // should never change
@@ -408,12 +572,13 @@ namespace JaySilk.Dawg.Scrabble
 
         public bool IsAnchor { get; set; } = false;
         public ConsoleColor Color = ConsoleColor.White;
-        public HashSet<char> CrossChecks;
+        public Dictionary<char, string> CrossChecks;
         public char? Tile;
         public Point Position;
         public Point AbsPosition; // make immutable
         public bool IsBorderSquare = false;
         public bool IsOccupied => Tile.HasValue;
+        public Score.Multiplier Multiplier { get; set; }
         //public bool HasNonTrivalCrossCheck => IsBorderSquare || CrossChecks.Count < 26;
     }
 

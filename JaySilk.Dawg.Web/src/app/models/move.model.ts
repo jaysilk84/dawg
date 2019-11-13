@@ -4,4 +4,5 @@ export interface Move {
     start: Position;
     end: Position;
     word: string;
+    score: number;
 }
