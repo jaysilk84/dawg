@@ -25,5 +25,15 @@ namespace JaySilk.Dawg.Api.Controllers
                 score = w.Score
             }));
         }
+
+        // public ActionResult Get() {
+        //     var scrabble = new Scrabble.Scrabble(BoardController.WordList);
+        //     return Ok(scrabble.PlayableWords.Select(w => new {
+        //         start = new {x = w.Start.X, y =w.Start.Y},
+        //         end = new {x = w.End.X, y =w.End.Y},
+        //         word = w.Word,
+        //         score = w.Score
+        //     }));
+        // }
     }
 }

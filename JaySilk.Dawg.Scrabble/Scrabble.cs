@@ -22,10 +22,9 @@ namespace JaySilk.Dawg.Scrabble
         private bool transposed_hack = false;
 
         public Square[,] Board = new Square[MAX_ROWS, MAX_COLS];
-        //public Dictionary<Point, Square> Anchors = new Dictionary<Point, Square>();
         public HashSet<Point> Anchors = new HashSet<Point>();
         public List<WordModel> PlayableWords = new List<WordModel>();
-        public string Rack = "SVGFKTO";
+        public string Rack = "KVTYISO";
 
         public Scrabble(Lib.Dawg wordList = null) {
             if (wordList == null)
@@ -73,6 +72,15 @@ namespace JaySilk.Dawg.Scrabble
             Board[7, 12].Tile = 'E';
             Board[7, 13].Tile = 'L';
 
+            Board[4, 14].Tile = 'F';
+            Board[5, 14].Tile = 'O';
+            Board[6, 14].Tile = 'G';
+            Board[7, 14].Tile = 'S';
+
+            Board[3, 15].Tile = 'M';
+            Board[4, 15].Tile = 'I';
+            Board[5, 15].Tile = 'X';
+
             var transposedBoard = Transpose(Board);
             BuildAnchorList(Board);
             BuildAnchorList(transposedBoard);
@@ -119,7 +127,7 @@ namespace JaySilk.Dawg.Scrabble
             for (var r = 0; r < MAX_ROWS; r++)
                 for (var c = 0; c < MAX_COLS; c++) {
                     Board[r, c] = new Square(null, new Point(c, r));
-                    if (Score.Bonuses.TryGetValue(new Point(c-1, r-1), out var m))
+                    if (Score.Bonuses.TryGetValue(new Point(c - 1, r - 1), out var m))
                         Board[r, c].Multiplier = m;
                     if (r == 0 || r == MAX_ROWS - 1 || c == 0 || c == MAX_COLS - 1) {
                         Board[r, c].IsBorderSquare = true;
@@ -129,31 +137,20 @@ namespace JaySilk.Dawg.Scrabble
         }
 
         public void BuildAnchorList(Square[,] board) {
-            var total = 0;
             for (var r = MIN_ROW; r < MAX_ROW; r++)
                 for (var c = MIN_COL; c < MAX_COL - 1; c++)
                     if (board[r, c].IsOccupied && !board[r, c + 1].IsOccupied) {
                         Anchors.Add(board[r, c + 1].AbsPosition);
-                        //Anchors[board[r, c + 1].AbsPosition] = board[r, c + 1];
-                        //board[r,c+1].IsAnchor = true;
                         c++;
-                        total++;
                     }
                     else if (!board[r, c].IsOccupied && board[r, c + 1].IsOccupied) {
                         Anchors.Add(board[r, c].AbsPosition);
-                        //Anchors[board[r, c].AbsPosition] = board[r, c];
-                        //board[r, c].IsAnchor = true;
-                        total++;
                     }
-                    else {
-                        //board[r,c].IsAnchor = false;
-                    }
-            Console.WriteLine("Anchors: " + total);
         }
 
         private void CalculateAllCrossChecks(Square[,] board) {
-            // foreach (var a in Anchors)
-            //     CalculateCrossCheck(board, board[a.Value.Position.Y, a.Value.Position.X]);
+            // can't use the anchor collection because the keys will be wrong on a transposed board
+            // TODO: package up that logic in a board class to make this loop more efficient 
             for (var r = MIN_ROW; r < MAX_ROW; r++)
                 for (var c = MIN_COL; c < MAX_COL; c++)
                     if (board[r, c].IsAnchor)
@@ -172,72 +169,34 @@ namespace JaySilk.Dawg.Scrabble
                 }
             }
         }
-        //private static int wordCount = 0;
 
-        private void LegalMove(string word, Square anchor, Square endSquare, Rack rack, Square[,] board) {
-            Square[,] tempBoard = CopyBoard(Board);
-            List<Square> tiles = new List<Square>();
 
-            // NOTE: endsquare is one position too far
-            // if (anchor.AbsPosition.Y == endSquare.AbsPosition.Y) {
-            if (anchor.Position.Y == endSquare.Position.Y) {
-                // horizontal play
-                var c = endSquare.Position.X - 1;
-                var r = endSquare.Position.Y;
-                foreach (var l in word.Reverse()) {
-                    var s = new Square(board[r, c]); // dont mutate
-                    if (!s.IsOccupied)
-                        s.Tile = l;
 
-                    tiles.Add(s);
-                    // if (!s.IsOccupied) {
-                    //     s.Tile = l;
-                    //     s.Color = ConsoleColor.Red;
-                    // }
-                    c--;
-                }
-                // PlayableWords.Add(new WordModel
-                // {
-                //     Score = Score.ScoreWord(tiles),
-                //     Word = word,
-                //     //Start = new Point(c, r - 1),
-                //     Start = new Point(endSquare.AbsPosition.X - (word.Length - 2), endSquare.AbsPosition.Y - 1),
-                //     End = new Point(endSquare.AbsPosition.X - 2, endSquare.AbsPosition.Y - 1)
-                // });
-            }
-            else {
-                // vertical play
-                var c = endSquare.Position.X;
-                var r = endSquare.Position.Y - 1;
-                foreach (var l in word.Reverse()) {
-                    var s = new Square(board[r, c]);
-                    if (!s.IsOccupied)
-                        s.Tile = l;
+        private void LegalMove(string word, Square start, Square end, Rack rack, Square[,] board) {
+            var tempBoard = (start.Position == start.AbsPosition && end.Position == end.AbsPosition) ?
+                CopyBoard(Board) :
+                Transpose(Board);
 
-                    tiles.Add(s);
-                    // if (!s.IsOccupied) {
-                    //     s.Tile = l;
-                    //     s.Color = ConsoleColor.Red;
-                    // }
-                    r--;
-                }
-                // PlayableWords.Add(new WordModel
-                // {
-                //     Score = Score.ScoreWord(tiles),
-                //     Word = word,
-                //     //Start = new Point(c - 1, r),
-                //     Start = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - (word.Length - 2)),
-                //     End = new Point(endSquare.AbsPosition.X - 1, endSquare.AbsPosition.Y - 2)
-                // });
+            var tiles = new List<Square>();
+            var c = end.Position.X;
+            var r = end.Position.Y;
+            foreach (var l in word.Reverse()) {
+                var s = new Square(board[r, c]); // dont mutate
+                if (!s.IsOccupied)
+                    s.Tile = l;
+
+                tiles.Add(s);
+                c--;
             }
 
-            RecordWord(word, tiles, endSquare, endSquare.AbsPosition.X == anchor.AbsPosition.X);
-
-            //wordCount++;
-            //Console.WriteLine($"Word: {word} End Row: {endSquare.Position.Y} End Col: {endSquare.Position.X} Anchor Row: {anchor.Position.Y} Anchor Col: {anchor.Position.X}");
-            //PrintBoard(tempBoard);
-            //Console.WriteLine($"Rack letters: {new string(rack.Letters.ToArray())}");
-            //Console.WriteLine(word);
+            PlayableWords.Add(new WordModel
+            {
+                Score = Score.ScoreWord(tiles),
+                Word = word,
+                Start = new Point(start.AbsPosition.X - 1, start.AbsPosition.Y - 1), // remove border
+                End = new Point(end.AbsPosition.X - 1, end.AbsPosition.Y - 1) // remove border
+            });
+            //RecordWord(word, tiles, endSquare, endSquare.AbsPosition.X == anchor.AbsPosition.X);
         }
 
         private void RecordWord(string word, List<Square> tiles, Square endSquare, bool vertical) {
@@ -259,18 +218,19 @@ namespace JaySilk.Dawg.Scrabble
                 });
         }
 
-        private bool ValidCrossChecks(Square s, char letter) {
-            return s.CrossChecks.ContainsKey(letter);
-            //return (s.HasNonTrivalCrossCheck && s.CrossChecks.Contains(letter)) || !s.HasNonTrivalCrossCheck;
-        }
-
         // TODO: Anchor shouldnt need to be known if we know the board is transposed or not
         private void ExtendRight(string partialWord, Node root, Square[,] board, Square square, Rack rack, Square anchor) {
             if (!square.IsOccupied) {
-                if (root.EndOfWord && square.Position != anchor.Position)
-                    LegalMove(partialWord, anchor, square, rack, board);
+                if (root.EndOfWord && square.Position != anchor.Position) {
+                    // square is off one position to the right of the word, we calc start by the end of the word - the letter count
+                    var end = square.Offset(0, -1);
+                    // Hard to understand, if someone uses "start" thinking it's a real tile, they will be upset
+                    var start = new Square(end);
+                    start.AbsPosition = new Point(start.AbsPosition.X - partialWord.Length, start.AbsPosition.Y); 
+                    LegalMove(partialWord, start, end, rack, board);
+                }
                 foreach (var e in root.Children) {
-                    if (rack.HasLetter(e.Key) && ValidCrossChecks(square, e.Key)) {
+                    if (rack.HasLetter(e.Key) && square.CrossChecks.ContainsKey(e.Key)) {
                         rack.Remove(e.Key);
                         ExtendRight(partialWord + e.Key, e.Value, board, board[square.Position.Y, square.Position.X + 1], rack, anchor);
                         rack.Add(e.Key);
@@ -300,7 +260,6 @@ namespace JaySilk.Dawg.Scrabble
             var limit = 0;
             var prefix = "";
             for (var c = MIN_COL; c < MAX_COL; c++) {
-                //if (Anchors.ContainsKey(board[r, c].AbsPosition)) {
                 if (board[r, c].IsAnchor) {
                     if (prefix.Length > 0) {
                         var root = FastForwardPrefix(prefix);
@@ -329,8 +288,6 @@ namespace JaySilk.Dawg.Scrabble
             if (downParts.Prefix.Length == 0 && downParts.Suffix.Length == 0)
                 return;
 
-            //Console.WriteLine(downParts.Prefix + "?" + downParts.Suffix);
-            //Console.WriteLine("anchor: " + currentSquare.Position);
             foreach (var c in ALPHABET)
                 if (dawg.Exists(downParts.Prefix + c + downParts.Suffix))
                     crossChecks.Add(c, downParts.Prefix + c + downParts.Suffix);
@@ -340,11 +297,10 @@ namespace JaySilk.Dawg.Scrabble
 
         private string GetDownWord(Square[,] board, Square currentSquare, int step) {
             var sb = new StringBuilder();
-            //var s = board[currentSquare.]
             var r = currentSquare.Position.Y + step;
             var c = currentSquare.Position.X;
+
             while (r < MAX_ROW && r >= MIN_ROW && board[r, c].IsOccupied) {
-                //Console.WriteLine($"R: {r} C: {c} t: {board[r,c].Tile}");
                 sb.Append(board[r, c].Tile);
                 r += step;
             }
@@ -362,7 +318,6 @@ namespace JaySilk.Dawg.Scrabble
         private char GetTileLabel(Square s) {
             if (s.IsBorderSquare) return '@';
             if (s.IsOccupied) return s.Tile.Value;
-            //if (Anchors.TryGetValue(s.AbsPosition, out var value)) return '*';
             if (s.IsAnchor) return '*';
             return '.';
         }
@@ -389,9 +344,8 @@ namespace JaySilk.Dawg.Scrabble
             for (var r = 0; r < MAX_ROWS; r++)
                 for (var c = 0; c < MAX_COLS; c++) {
                     var square = board[r, c];
-                    if (square.Tile.HasValue || square.IsAnchor) {
+                    if (square.Tile.HasValue || square.IsAnchor)
                         result.Add(new SquareModel { Tile = square.Tile, IsAnchor = square.IsAnchor, Position = new Point(square.Position.X - 1, square.Position.Y - 1) });
-                    }
                 }
 
             return result;
@@ -478,8 +432,6 @@ namespace JaySilk.Dawg.Scrabble
             { new Point(9,9), new Multiplier(3, MultiplierType.Letter)}, { new Point(13,9), new Multiplier(2, MultiplierType.Word)},
             { new Point(0,8), new Multiplier(3, MultiplierType.Letter)}, { new Point(4,8), new Multiplier(2, MultiplierType.Letter)},
             { new Point(10,8), new Multiplier(2, MultiplierType.Letter)}, { new Point(14,8), new Multiplier(3, MultiplierType.Letter)},
-            
-
         };
 
 
@@ -495,25 +447,19 @@ namespace JaySilk.Dawg.Scrabble
                     tripleWords++;
 
                 total += applyLetterMultiplier(Letters[s.Tile.Value], s.Multiplier);
-           
-                if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
-                    total += ScoreDownWord(downWord, s.Multiplier);
-            }
-            // word = new string(word.Reverse().ToArray());
-            // Console.WriteLine($"Word: {word} Score: {total} r: {squares[^1].AbsPosition.Y} c: {squares[^1].AbsPosition.X}");
-            // foreach (var s in squares) {
-            //     //total += Letters[s.Tile.Value];
-            //     if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
-            //         total += ScoreDownWord(downWord);
-            // }
 
-            
-            return total += (tripleWords * 3) + (doubleWords * 2) + downWordTotal;
+                if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
+                    downWordTotal += ScoreDownWord(downWord, s.Multiplier);
+            }
+
+            var multipliers = (total * tripleWords * 3) + (total * doubleWords * 2);
+            return total = multipliers == 0 ? total + downWordTotal : multipliers + downWordTotal;
 
             int applyLetterMultiplier(int letterValue, Multiplier multiplier) {
                 if (multiplier == null) return letterValue;
 
-                return multiplier.Type switch {
+                return multiplier.Type switch
+                {
                     MultiplierType.Letter => letterValue * multiplier.Value,
                     _ => letterValue
                 };
@@ -528,7 +474,7 @@ namespace JaySilk.Dawg.Scrabble
 
             // down words can only be affected by one multiplier and it has to be a word multiplier
             if (multiplier != null && multiplier.Type == MultiplierType.Word)
-                total *= multiplier.Value; 
+                total *= multiplier.Value;
 
             return total;
         }
@@ -559,8 +505,8 @@ namespace JaySilk.Dawg.Scrabble
             Color = s.Color;
             IsBorderSquare = s.IsBorderSquare;
             IsAnchor = s.IsAnchor;
-            
-            if (s.Multiplier != null) 
+
+            if (s.Multiplier != null)
                 Multiplier = new Score.Multiplier(s.Multiplier);
         }
         public Square(char? tile, Point position) {
@@ -568,6 +514,13 @@ namespace JaySilk.Dawg.Scrabble
             Tile = tile;
             Position = position;
             AbsPosition = position; // should never change
+        }
+
+        public Square Offset(int row, int col) {
+            var s = new Square(this);
+            s.Position.Offset(col, row);
+            //s.AbsPosition.Offset(col, row); // bad?
+            return s;
         }
 
         public bool IsAnchor { get; set; } = false;
