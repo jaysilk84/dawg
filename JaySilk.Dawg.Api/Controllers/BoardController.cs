@@ -46,6 +46,7 @@ namespace JaySilk.Dawg.Api.Controllers
             foreach (var w in db.GetWords())
                 dawg.Insert(w.ToUpper());
 
+            dawg.Finish();
             return dawg;
         }
 

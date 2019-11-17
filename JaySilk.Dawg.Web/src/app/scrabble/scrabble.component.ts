@@ -56,13 +56,18 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
     });
   }
 
+  private isBlank(move: Move, position: number) {
+    return move.blanks.filter(b => b == position).length;
+  }
+
   private processMove(move: Move, gridId: string) {
     if (move.start.y == move.end.y) {
       const r = move.start.y;
       let c = move.start.x;
       for (let i = 0; i < move.word.length; i++) {
         this.setText(gridId, r, c, move.word[i], "red");
-        this.setValue(gridId, r, c, this.letters[move.word[i]]);
+        if (!this.isBlank(move, i))
+          this.setValue(gridId, r, c, this.letters[move.word[i]]);
         c++;
       }
     } else {
@@ -70,7 +75,8 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
       const c = move.start.x;
       for (let i = 0; i < move.word.length; i++) {
         this.setText(gridId, r, c, move.word[i], "red");
-        this.setValue(gridId, r, c, this.letters[move.word[i]]);
+        if (!this.isBlank(move, i))
+          this.setValue(gridId, r, c, this.letters[move.word[i]]);
         r++;
       }
     }
