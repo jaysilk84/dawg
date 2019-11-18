@@ -6,12 +6,14 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { DawgChartComponent } from './dawg-chart/dawg-chart.component';
 import { ScrabbleComponent } from './scrabble/scrabble.component';
+import { GridComponent } from './scrabble/grid/grid.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     DawgChartComponent,
-    ScrabbleComponent
+    ScrabbleComponent,
+    GridComponent
   ],
   imports: [
     BrowserModule,

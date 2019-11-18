@@ -22,7 +22,7 @@ namespace JaySilk.Dawg.Scrabble
         public Square[,] Board = new Square[MAX_ROWS, MAX_COLS];
         public HashSet<Point> Anchors = new HashSet<Point>();
         public List<WordModel> PlayableWords = new List<WordModel>();
-        public string Rack = "K?TYISO";
+        public string Rack = "HACKERS";
 
         public Scrabble(Lib.Dawg wordList = null) {
             if (wordList == null)
@@ -173,7 +173,7 @@ namespace JaySilk.Dawg.Scrabble
             }
         }
 
-        private void LegalMove(Word word, Square start, Square end, Square[,] board) {
+        private void LegalMove(Word word, Square start, Square end, Square[,] board, Rack rack) {
             var tiles = new List<Square>();
             var c = start.Position.X;
             var r = start.Position.Y;
@@ -192,7 +192,7 @@ namespace JaySilk.Dawg.Scrabble
 
             PlayableWords.Add(new WordModel
             {
-                Score = Score.ScoreWord(tiles),
+                Score = Score.ScoreWord(tiles, rack),
                 Word = word.ToString(),
                 Blanks = word.Blanks,
                 Start = new Point(start.AbsPosition.X - 1, start.AbsPosition.Y - 1), // remove border
@@ -207,7 +207,7 @@ namespace JaySilk.Dawg.Scrabble
                 if (root.EndOfWord && square.Position != anchor.Position)
                     // square is off one position to the right of the word, we calc start by the end of the word minus the letter count
                     // start is offset by 1 because it should be partialWord.Length - 1, leaving it just .Length accomplishes the same
-                    LegalMove(partialWord, square.Offset(0, -(partialWord.Length)), square.Offset(0, -1), board);
+                    LegalMove(partialWord, square.Offset(0, -(partialWord.Length)), square.Offset(0, -1), board, rack);
 
                 foreach (var e in root.Children) {
                     if (rack.HasLetter(e.Key) && square.CrossChecks.ContainsKey(e.Key)) {
@@ -422,7 +422,7 @@ namespace JaySilk.Dawg.Scrabble
         };
 
 
-        public static int ScoreWord(List<Square> squares) {
+        public static int ScoreWord(List<Square> squares, Rack rack) {
             var total = 0;
             var downWordTotal = 0;
             var tripleWords = 0;
@@ -441,7 +441,8 @@ namespace JaySilk.Dawg.Scrabble
             }
 
             var multipliers = (total * tripleWords * 3) + (total * doubleWords * 2);
-            return total = multipliers == 0 ? total + downWordTotal : multipliers + downWordTotal;
+            var bonus = rack.Count == 0 ? 50 : 0;
+            return total = (multipliers == 0 ? total + downWordTotal : multipliers + downWordTotal) + bonus;
         }
 
         private static int ApplyLetterMultiplier(int value, Multiplier multiplier) {
