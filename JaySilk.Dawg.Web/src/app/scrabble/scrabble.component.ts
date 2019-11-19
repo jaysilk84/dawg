@@ -14,14 +14,22 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
   private gridCounter = 1;
   private letters : Record<string, number>;
   private bonuses: Bonus[];
+  board:Square[][];
 
   @ViewChild('container', { static: false })
   container: ElementRef<HTMLDivElement>;
 
   constructor(private scrabbleService: ScrabbleService) {
+    this.board = [];
+  }
+
+  onCellClick(event: any) {
+
   }
 
   ngOnInit() {
+    
+
   }
 
   ngAfterViewInit() {
@@ -31,6 +39,17 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
       this.bonuses = rules.bonuses;
 
       this.scrabbleService.getBoard().subscribe(board => {
+        var b: Square[][] = [];
+        for (let r = 0; r < 15; r++) {
+          b[r] = [];
+          for (let c = 0; c < 15; c++) {
+            let tile: Square = board.find(s => s.position.x == c && s.position.y == r) || { position: { x: c, y: r}, isAnchor: false, tile: ""};
+            tile.color = this.getBackgroundColor(tile);
+            tile.value = (this.letters[tile.tile] || "").toString();
+            b[r][c] = tile;
+          }
+        }
+        this.board = b;
         this.initBoard(board, "g1");
         this.scrabbleService.getMoves().subscribe(moves => {
           moves.forEach(m => {
@@ -160,5 +179,18 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
     const grid = document.getElementById(id);
     const text = value ? value.toString() : '';
     (<HTMLDivElement>grid.getElementsByClassName(classSelector)[0].getElementsByClassName("val")[0]).innerText = text;
+  }
+
+  private getBackgroundColor(s: Square) {
+    let bonus = this.bonuses.find(b => b.position.x == s.position.x && b.position.y == s.position.y) || { position: null, value: null, type: -1 };
+
+    switch (bonus.type) {
+      case 0:
+        return bonus.value == 2 ? "rgba(52, 113, 235, .2)" : "rgba(52, 235, 73, .2)";
+      case 1:
+          return bonus.value == 2 ? "rgba(235, 52, 52, .2)" : "rgba(235, 211, 52, .2)";
+      default:
+          return "rgba(255, 255, 255)";
+    }
   }
 }

@@ -1,1 +1,18 @@
-<p>grid works!</p>
+<div #container class="container">
+    <div class="grid">
+
+        <div *appNgMatrix="let tile of board; rows: 15; cols: 15; position as p" 
+            class="cell" [style.background-color]="tile.color" [class.anchor]="tile.isAnchor"
+            [attr.data-row]="p.row" [attr.data-col]="p.col">
+            
+            {{tile.tile}}
+
+            <div class="value">{{tile.value}}</div>
+        
+        </div>
+
+    </div>
+    <div class="label">
+
+    </div>
+</div>

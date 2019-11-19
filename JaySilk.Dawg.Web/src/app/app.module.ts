@@ -7,13 +7,15 @@ import { AppComponent } from './app.component';
 import { DawgChartComponent } from './dawg-chart/dawg-chart.component';
 import { ScrabbleComponent } from './scrabble/scrabble.component';
 import { GridComponent } from './scrabble/grid/grid.component';
+import { NgMatrixDirective } from './ng-matrix.directive';
 
 @NgModule({
   declarations: [
     AppComponent,
     DawgChartComponent,
     ScrabbleComponent,
-    GridComponent
+    GridComponent,
+    NgMatrixDirective
   ],
   imports: [
     BrowserModule,
