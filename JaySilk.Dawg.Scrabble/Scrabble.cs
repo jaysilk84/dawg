@@ -34,7 +34,7 @@ namespace JaySilk.Dawg.Scrabble
             Board[1, 4].Tile = 'Z';
             Board[2, 4].Tile = 'A';
             Board[2, 5].Tile = 'S';
-           
+
 
             // Board[1, 2].Tile = 'J'; 
             // Board[2, 2].Tile = 'A';
@@ -175,26 +175,41 @@ namespace JaySilk.Dawg.Scrabble
 
         private void LegalMove(Word word, Square start, Square end, Square[,] board, Rack rack) {
             var tiles = new List<Square>();
+            var tempBoard = CopyBoard(board);
             var c = start.Position.X;
             var r = start.Position.Y;
             var i = 0;
             foreach (var l in word.ToString()) {
-                var s = new Square(board[r, c]); // dont mutate
+                var s = tempBoard[r, c];
+
                 if (!s.IsOccupied) {
                     s.HasBlank = word.HasBlank(i);
                     s.Tile = l;
                 }
 
+                s.IsPlayed = true;
                 tiles.Add(s);
                 c++;
                 i++;
             }
 
+            var boardModel = new BoardModel()
+            {
+                Tiles = SerializeBoard(board).ToArray(), // issue: transposed board?
+                Rack = rack.ToString(),
+                PlayedWord = new WordModel
+                {
+                    Score = Score.ScoreWord(tiles, rack),
+                    Word = word.ToString(),
+                    End = new Point(end.AbsPosition.X - 1, end.AbsPosition.Y - 1) // remove border
+                }
+            };
+
             PlayableWords.Add(new WordModel
             {
                 Score = Score.ScoreWord(tiles, rack),
                 Word = word.ToString(),
-                Blanks = word.Blanks,
+                //Blanks = word.Blanks,
                 Start = new Point(start.AbsPosition.X - 1, start.AbsPosition.Y - 1), // remove border
                 End = new Point(end.AbsPosition.X - 1, end.AbsPosition.Y - 1) // remove border
             });
@@ -276,7 +291,7 @@ namespace JaySilk.Dawg.Scrabble
                 return;
 
             foreach (var c in ALPHABET) {
-                var word = downWord.ToString().Replace('?', c); 
+                var word = downWord.ToString().Replace('?', c);
                 if (dawg.Exists(word))
                     crossChecks.Add(c, new Word(word, downWord.Blanks));
             }
@@ -334,7 +349,14 @@ namespace JaySilk.Dawg.Scrabble
                 for (var c = 0; c < MAX_COLS; c++) {
                     var square = board[r, c];
                     if (square.Tile.HasValue || square.IsAnchor)
-                        result.Add(new SquareModel { Tile = square.Tile, IsAnchor = square.IsAnchor, Position = new Point(square.Position.X - 1, square.Position.Y - 1) });
+                        result.Add(new SquareModel
+                        {
+                            Tile = square.Tile,
+                            IsAnchor = square.IsAnchor,
+                            Position = new Point(square.AbsPosition.X - 1, square.AbsPosition.Y - 1),
+                            IsBlank = square.HasBlank,
+                            Value = square.Value
+                        });
                 }
 
             return result;
@@ -352,11 +374,11 @@ namespace JaySilk.Dawg.Scrabble
 
         public Square[,] Transpose(Square[,] board) {
             var newBoard = new Square[MAX_ROWS, MAX_COLS];
-    
+
             for (var r = 0; r < MAX_ROWS; r++)
-                for (var c = 0; c < MAX_COLS; c++) 
+                for (var c = 0; c < MAX_COLS; c++)
                     newBoard[c, r] = board[r, c].Transpose();
-    
+
             return newBoard;
         }
 
@@ -480,7 +502,14 @@ namespace JaySilk.Dawg.Scrabble
         public Point End { get; set; }
         public string Word { get; set; }
         public int Score { get; set; }
-        public HashSet<int> Blanks { get; set; }
+        //public HashSet<int> Blanks { get; set; }
+    }
+
+    public class BoardModel
+    {
+        public SquareModel[] Tiles { get; set; }
+        public string Rack { get; set; }
+        public WordModel PlayedWord { get; set; }
     }
 
     public class SquareModel
@@ -488,6 +517,9 @@ namespace JaySilk.Dawg.Scrabble
         public Point Position { get; set; }
         public char? Tile { get; set; }
         public bool IsAnchor { get; set; }
+        public bool IsBlank { get; set; }
+        public int Value { get; set; }
+        public bool IsPlayed { get; set; }
     }
 
     /// <summary>
@@ -580,7 +612,8 @@ namespace JaySilk.Dawg.Scrabble
         public bool IsOccupied => Tile.HasValue;
         public Score.Multiplier Multiplier { get; set; }
         private bool IsTransposed { get; set; } = false;
-
+        public bool IsPlayed { get; set; } = false;
+        public int Value => HasBlank ? 0 : IsOccupied ? Score.Letters[Tile.Value] : 0;
         public Square Transpose() {
             return new Square(this, new Point(this.Position.Y, this.Position.X), !this.IsTransposed);
         }
