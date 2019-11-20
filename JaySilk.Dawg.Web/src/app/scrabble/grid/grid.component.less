@@ -2,13 +2,22 @@
 @grid-cols: 15;
 @grid-width: (@cell-size * @grid-cols);
 
+.container {
+    float: left;
+    margin-bottom: 10px;
+}
+
+.selected {
+    border-color: red !important;
+}
+
 .grid {
     border: 1px solid #ccc;
     border-width: 1px 1px 1px 1px;
     float: left;
     width: unit(@grid-width, px);
     font-family: 'Arial Black';
-    //margin-right: 10px;
+    margin-right: 10px;
     //margin-bottom: 20px;
 }
 
@@ -36,6 +45,32 @@
     border: 0px;
 }
 
+.played {
+    color:red;
+}
+
 .anchor {
     border-color: blue;
 }
+
+.info span {
+    padding-right: 10px;
+}
+
+.label {
+    font-weight: bold;
+    font-size: 16px;
+    color: black;
+}
+
+.move, .score, .rack {
+    font-family: "Arial Black";
+    font-size: 15px;
+}
+
+.move {
+    //color: red;
+}
+
+
+

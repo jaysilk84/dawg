@@ -3,6 +3,13 @@ import { ScrabbleService } from '../services/scrabble.service';
 import { Move } from '../models/move.model';
 import { Square } from '../models/square.model';
 import { Bonus } from '../models/rules.model';
+import { Position } from '../models/position.model';
+
+export interface PlayableBoard {
+  board: Square[][];
+  move: Move;
+  rack: string;   
+}
 
 @Component({
   selector: 'app-scrabble',
@@ -12,15 +19,17 @@ import { Bonus } from '../models/rules.model';
 export class ScrabbleComponent implements OnInit, AfterViewInit {
   private static readonly CELL_SIZE: number = 25;
   private gridCounter = 1;
-  private letters : Record<string, number>;
+  private letters: Record<string, number>;
   private bonuses: Bonus[];
-  board:Square[][];
+  board: Square[][];
+  playableBoards: Array<PlayableBoard>;
 
   @ViewChild('container', { static: false })
   container: ElementRef<HTMLDivElement>;
 
   constructor(private scrabbleService: ScrabbleService) {
     this.board = [];
+    this.playableBoards = new Array<PlayableBoard>();
   }
 
   onCellClick(event: any) {
@@ -28,42 +37,67 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
-    
+
 
   }
 
   ngAfterViewInit() {
-    this.createGrid(this.container, 15, "g1");
+    //this.createGrid(this.container, 15, "g1");
     this.scrabbleService.getRules().subscribe(rules => {
       this.letters = rules.letters;
       this.bonuses = rules.bonuses;
 
-      this.scrabbleService.getBoard().subscribe(board => {
-        var b: Square[][] = [];
-        for (let r = 0; r < 15; r++) {
-          b[r] = [];
-          for (let c = 0; c < 15; c++) {
-            let tile: Square = board.find(s => s.position.x == c && s.position.y == r) || { position: { x: c, y: r}, isAnchor: false, tile: ""};
-            tile.color = this.getBackgroundColor(tile);
-            tile.value = (this.letters[tile.tile] || "").toString();
-            b[r][c] = tile;
+      this.scrabbleService.getBoards().subscribe(boards => {
+        boards.forEach(playableBoard => {
+          var b: Square[][] = [];
+          for (let r = 0; r < 15; r++) {
+            b[r] = [];
+            for (let c = 0; c < 15; c++) {
+              let tile: Square = playableBoard.tiles.find(s => s.position.x == c && s.position.y == r) || this.blankTile({x: c, y: r});
+              tile.color = this.getBackgroundColor(tile);
+              b[r][c] = tile;
+            }
           }
-        }
-        this.board = b;
-        this.initBoard(board, "g1");
-        this.scrabbleService.getMoves().subscribe(moves => {
-          moves.forEach(m => {
-            this.gridCounter+=1;
-            var id = "g" + this.gridCounter;
-            this.createGrid(this.container, 15, id);
-            this.applyBonuses(id);
-            this.initBoard(board, id);
-            this.processMove(m, id);
-          });
+          this.playableBoards.push({ board: b, rack: playableBoard.rack, move: playableBoard.playedWord });
         });
+
+        // var b: Square[][] = [];
+        // for (let r = 0; r < 15; r++) {
+        //   b[r] = [];
+        //   for (let c = 0; c < 15; c++) {
+        //     let tile: Square = board.find(s => s.position.x == c && s.position.y == r) || { position: { x: c, y: r }, isAnchor: false, tile: "" };
+        //     tile.color = this.getBackgroundColor(tile);
+        //     tile.value = (this.letters[tile.tile] || "").toString();
+        //     b[r][c] = tile;
+        //   }
+        // }
+
+        //this.board = b;
+
+        // this.initBoard(board, "g1");
+        // this.scrabbleService.getMoves().subscribe(moves => {
+        //   moves.forEach(m => {
+        //     this.gridCounter += 1;
+        //     var id = "g" + this.gridCounter;
+        //     this.createGrid(this.container, 15, id);
+        //     this.applyBonuses(id);
+        //     this.initBoard(board, id);
+        //     this.processMove(m, id);
+        //   });
+        // });
       });
     });
-    
+  }
+
+  private blankTile(p: Position) : Square {
+    return {
+      position: { x: p.x, y: p.y},
+      isAnchor: false,
+      isBlank: false,
+      tile: "",
+      isPlayed: false,
+      value: 0
+    };
   }
 
   private initBoard(board: Square[], gridId: string) {
@@ -121,7 +155,7 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
         cell.classList.add("col" + c);
         cell.classList.add("cell");
         parent.appendChild(cell);
-        
+
         content.classList.add("content");
         content.style.height = "100%";
         content.style.textAlign = "right";
@@ -134,7 +168,7 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
         value.style.lineHeight = "10px";
         value.classList.add("val");
         cell.appendChild(value);
-    
+
       }
     parent.appendChild(label);
     container.nativeElement.appendChild(parent);
@@ -143,11 +177,11 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
     this.bonuses.forEach(b => {
       switch (b.type) {
         case 0:
-          b.value == 2 ? this.setBackground(id, b.position.y, b.position.x, 52, 113, 235) : 
+          b.value == 2 ? this.setBackground(id, b.position.y, b.position.x, 52, 113, 235) :
             this.setBackground(id, b.position.y, b.position.x, 52, 235, 73);
           break;
         case 1:
-            b.value == 2 ? this.setBackground(id, b.position.y, b.position.x, 235, 52, 52) : 
+          b.value == 2 ? this.setBackground(id, b.position.y, b.position.x, 235, 52, 52) :
             this.setBackground(id, b.position.y, b.position.x, 235, 211, 52);
       }
     });
@@ -182,15 +216,16 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
   }
 
   private getBackgroundColor(s: Square) {
-    let bonus = this.bonuses.find(b => b.position.x == s.position.x && b.position.y == s.position.y) || { position: null, value: null, type: -1 };
+    //let bonus = this.bonuses.find(b => b.position.x == s.position.x && b.position.y == s.position.y) || { position: null, value: null, type: -1 };
+    let bonus = this.bonuses[s.position.x + ", " + s.position.y] || { position: null, value: null, type: -1 };
 
     switch (bonus.type) {
       case 0:
         return bonus.value == 2 ? "rgba(52, 113, 235, .2)" : "rgba(52, 235, 73, .2)";
       case 1:
-          return bonus.value == 2 ? "rgba(235, 52, 52, .2)" : "rgba(235, 211, 52, .2)";
+        return bonus.value == 2 ? "rgba(235, 52, 52, .2)" : "rgba(235, 211, 52, .2)";
       default:
-          return "rgba(255, 255, 255)";
+        return "rgba(255, 255, 255)";
     }
   }
 }

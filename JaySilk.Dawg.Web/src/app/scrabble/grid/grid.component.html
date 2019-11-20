@@ -1,18 +1,23 @@
 <div #container class="container">
-    <div class="grid">
+    <div (keydown)="keyHandler($event)" tabindex="0">
+        <div class="grid" (mouseover)="hasFocus=true" (mouseout)="hasFocus=false" [class.selected]="hasFocus">
 
-        <div *appNgMatrix="let tile of board; rows: 15; cols: 15; position as p" 
-            class="cell" [style.background-color]="tile.color" [class.anchor]="tile.isAnchor"
-            [attr.data-row]="p.row" [attr.data-col]="p.col">
-            
-            {{tile.tile}}
+            <div *appNgMatrix="let tile of board; rows: 15; cols: 15; position as p" class="cell"
+                [style.background-color]="tile.color" [class.anchor]="tile.isAnchor" [class.played]="tile.isPlayed"
+                [class.selected]="isSelected(tile)" (click)="selectCell(tile)" [attr.data-row]="p.row"
+                [attr.data-col]="p.col">
 
-            <div class="value">{{tile.value}}</div>
-        
+                {{tile.tile}}
+
+                <div *ngIf="tile.value" class="value">{{tile.value}}</div>
+
+            </div>
         </div>
-
     </div>
-    <div class="label">
 
+    <div class="info">
+        <span class="move"><span class="label">Word:</span>{{move.word}}</span>
+        <span class="score"><span class="label">Score:</span>{{move.score}}</span>
+        <span class="rack"><span class="label">Rack:</span>{{rack}}</span>
     </div>
 </div>

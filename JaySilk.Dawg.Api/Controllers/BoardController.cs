@@ -19,24 +19,15 @@ namespace JaySilk.Dawg.Api.Controllers
         [HttpGet]
         public ActionResult Get() {
             var scrabble = new Scrabble.Scrabble(WordList);
-            return Ok(scrabble.SerializeBoard(scrabble.Board).Select(s => new {
-                position = new {x = s.Position.X, y =s.Position.Y},
-                isAnchor = s.IsAnchor,
-                tile = s.Tile
-            }));
+            return Ok(scrabble.SerializeBoard(scrabble.Board));
         }
 
         [HttpGet("rules")]
         public ActionResult GetLetters() {
             return Ok(new { 
                 letters = Scrabble.Score.Letters,
-                bonuses = Scrabble.Score.Bonuses.Select(b => new {
-                    position = new { x = b.Key.X, y = b.Key.Y},
-                    value = b.Value.Value,
-                    type = b.Value.Type
-                })
+                bonuses = Scrabble.Score.Bonuses
             });
-                
         }
 
         private static Lib.Dawg BuildDawg() {

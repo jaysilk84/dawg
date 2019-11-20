@@ -22,7 +22,8 @@ namespace JaySilk.Dawg.Scrabble
         public Square[,] Board = new Square[MAX_ROWS, MAX_COLS];
         public HashSet<Point> Anchors = new HashSet<Point>();
         public List<WordModel> PlayableWords = new List<WordModel>();
-        public string Rack = "HACKERS";
+        public List<BoardModel> PlayableBoards = new List<BoardModel>();
+        public string Rack = "HACKER?";
 
         public Scrabble(Lib.Dawg wordList = null) {
             if (wordList == null)
@@ -193,17 +194,18 @@ namespace JaySilk.Dawg.Scrabble
                 i++;
             }
 
-            var boardModel = new BoardModel()
+            PlayableBoards.Add(new BoardModel()
             {
-                Tiles = SerializeBoard(board).ToArray(), // issue: transposed board?
+                Tiles = SerializeBoard(tempBoard).ToArray(), // issue: transposed board? no, serialize uses AbsPosition
                 Rack = rack.ToString(),
                 PlayedWord = new WordModel
                 {
                     Score = Score.ScoreWord(tiles, rack),
                     Word = word.ToString(),
+                    Start = new Point(start.AbsPosition.X - 1, start.AbsPosition.Y - 1), // remove border
                     End = new Point(end.AbsPosition.X - 1, end.AbsPosition.Y - 1) // remove border
                 }
-            };
+            });
 
             PlayableWords.Add(new WordModel
             {
@@ -349,14 +351,7 @@ namespace JaySilk.Dawg.Scrabble
                 for (var c = 0; c < MAX_COLS; c++) {
                     var square = board[r, c];
                     if (square.Tile.HasValue || square.IsAnchor)
-                        result.Add(new SquareModel
-                        {
-                            Tile = square.Tile,
-                            IsAnchor = square.IsAnchor,
-                            Position = new Point(square.AbsPosition.X - 1, square.AbsPosition.Y - 1),
-                            IsBlank = square.HasBlank,
-                            Value = square.Value
-                        });
+                        result.Add(new SquareModel(square));
                 }
 
             return result;
@@ -514,6 +509,16 @@ namespace JaySilk.Dawg.Scrabble
 
     public class SquareModel
     {
+        public SquareModel() { }
+        public SquareModel(Square s) {
+            Position = new Point(s.AbsPosition.X - 1, s.AbsPosition.Y - 1);
+            Tile = s.Tile;
+            IsAnchor = s.IsAnchor;
+            IsBlank = s.HasBlank;
+            Value = s.Value;
+            IsPlayed = s.IsPlayed;
+        }
+
         public Point Position { get; set; }
         public char? Tile { get; set; }
         public bool IsAnchor { get; set; }
@@ -657,5 +662,9 @@ namespace JaySilk.Dawg.Scrabble
 
         public bool HasLetter(char letter) => _letters.ContainsKey(letter) && _letters[letter] > 0;
         public int Count => _letters.Sum(x => x.Value);
+
+        public override string ToString() {
+            return new string(Letters.ToArray());
+        }
     }
 }

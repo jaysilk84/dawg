@@ -25,13 +25,15 @@ namespace JaySilk.Dawg.Api.Controllers
             // dawg.Finish();
             // var scrabble = new Scrabble.Scrabble(dawg);
             var scrabble = new Scrabble.Scrabble(BoardController.WordList);
-            return Ok(scrabble.PlayableWords.OrderByDescending(x => x.Score).Take(50).Select(w => new {
-                start = new {x = w.Start.X, y =w.Start.Y},
-                end = new {x = w.End.X, y =w.End.Y},
-                word = w.Word,
-                score = w.Score,
-                blanks = w.Blanks
-            }));
+            return Ok(scrabble.PlayableWords.OrderByDescending(x => x.Score).Take(50));
+        }
+
+        [HttpGet("board")]
+        public ActionResult GetBoard() {
+            var scrabble = new Scrabble.Scrabble(BoardController.WordList);
+
+            return Ok(scrabble.PlayableBoards.OrderByDescending(x => x.PlayedWord.Score).Take(50));
+
         }
 
         // public ActionResult Get() {
