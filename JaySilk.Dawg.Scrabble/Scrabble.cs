@@ -23,18 +23,22 @@ namespace JaySilk.Dawg.Scrabble
         public HashSet<Point> Anchors = new HashSet<Point>();
         public List<WordModel> PlayableWords = new List<WordModel>();
         public List<BoardModel> PlayableBoards = new List<BoardModel>();
-        public string Rack = "HACKER?";
+        //public string Rack = "HACKER?";
 
-        public Scrabble(Lib.Dawg wordList = null) {
+        public Scrabble(List<Square> tiles, string rack = "", Lib.Dawg wordList = null) {
             if (wordList == null)
                 BuildDawg();
             else
                 dawg = wordList;
 
-            BuildBlankBoard();
-            Board[1, 4].Tile = 'Z';
-            Board[2, 4].Tile = 'A';
-            Board[2, 5].Tile = 'S';
+            // TODO: Fix this, need to elimnate the border internally because needing to change
+            // offset means users have to know it's offset
+            tiles.ForEach(t => t.Position.Offset(1, 1));
+
+            BuildBlankBoard(tiles);
+            // Board[1, 4].Tile = 'Z';
+            // Board[2, 4].Tile = 'A';
+            // Board[2, 5].Tile = 'S';
 
 
             // Board[1, 2].Tile = 'J'; 
@@ -97,8 +101,8 @@ namespace JaySilk.Dawg.Scrabble
             PrintBoard(transposedBoard);
 
             for (var r = 0; r < MAX_ROWS; r++) {
-                ProcessRow(Board, r);
-                ProcessRow(transposedBoard, r);
+                ProcessRow(Board, r, new Rack(rack));
+                ProcessRow(transposedBoard, r, new Rack(rack));
             }
         }
 
@@ -119,11 +123,11 @@ namespace JaySilk.Dawg.Scrabble
                 dawg.Insert(w.ToUpper());
         }
 
-        private void BuildBlankBoard() {
-            var rng = new Random();
+        private void BuildBlankBoard(List<Square> tiles) {
             for (var r = 0; r < MAX_ROWS; r++)
                 for (var c = 0; c < MAX_COLS; c++) {
-                    Board[r, c] = new Square(null, new Point(c, r));
+                    var tile = tiles.FirstOrDefault(t => t.Position.X == c && t.Position.Y == r);
+                    Board[r, c] = tile == null ? new Square(null, new Point(c, r)) : tile;
                     if (Score.Bonuses.TryGetValue(new Point(c - 1, r - 1), out var m))
                         Board[r, c].Multiplier = m;
                     if (r == 0 || r == MAX_ROWS - 1 || c == 0 || c == MAX_COLS - 1) {
@@ -181,15 +185,17 @@ namespace JaySilk.Dawg.Scrabble
             var r = start.Position.Y;
             var i = 0;
             foreach (var l in word.ToString()) {
-                var s = tempBoard[r, c];
+                var s = tempBoard[r, c]; // all tiles must be marked "IsPlayed" for highlighting
+                var t = new Square(s); // just the ones played must be marked "IsPlayed" for scoring
 
                 if (!s.IsOccupied) {
-                    s.HasBlank = word.HasBlank(i);
-                    s.Tile = l;
+                    t.HasBlank = s.HasBlank = word.HasBlank(i);
+                    t.Tile= s.Tile = l;
+                    t.IsPlayed = true;
                 }
 
                 s.IsPlayed = true;
-                tiles.Add(s);
+                tiles.Add(t);
                 c++;
                 i++;
             }
@@ -258,7 +264,7 @@ namespace JaySilk.Dawg.Scrabble
             return root;
         }
 
-        private void ProcessRow(Square[,] board, int r) {
+        private void ProcessRow(Square[,] board, int r, Rack rack) {
             var limit = 0;
             var prefix = "";
             for (var c = MIN_COL; c < MAX_COL; c++) {
@@ -266,10 +272,10 @@ namespace JaySilk.Dawg.Scrabble
                     if (prefix.Length > 0) {
                         var root = FastForwardPrefix(prefix);
                         if (root != null)
-                            ExtendRight(new Word(prefix), root, board, board[r, c], new Rack(Rack), board[r, c]);
+                            ExtendRight(new Word(prefix), root, board, board[r, c], rack, board[r, c]);
                     }
                     else
-                        LeftPart(new Word(""), dawg.Root, limit, new Rack(Rack), board, board[r, c]);
+                        LeftPart(new Word(""), dawg.Root, limit, rack, board, board[r, c]);
 
                     limit = 0;
                     prefix = "";
@@ -445,20 +451,20 @@ namespace JaySilk.Dawg.Scrabble
             var tripleWords = 0;
             var doubleWords = 0;
             foreach (var s in squares) {
-                if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 2)
+                if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 2 && s.IsPlayed)
                     doubleWords++;
-                else if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 3)
+                else if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 3 && s.IsPlayed)
                     tripleWords++;
                 var value = s.HasBlank ? 0 : Letters[s.Tile.Value];
 
-                total += ApplyLetterMultiplier(value, s.Multiplier);
+                total += ApplyLetterMultiplier(value, s.IsPlayed ? s.Multiplier : null); // dont count existing square bonuses
 
                 if (s.CrossChecks.TryGetValue(s.Tile.Value, out var downWord))
                     downWordTotal += ScoreDownWord(downWord, s);
             }
 
             var multipliers = (total * tripleWords * 3) + (total * doubleWords * 2);
-            var bonus = rack.Count == 0 ? 50 : 0;
+            var bonus = rack.Count == 0 ? 35 : 0;
             return total = (multipliers == 0 ? total + downWordTotal : multipliers + downWordTotal) + bonus;
         }
 

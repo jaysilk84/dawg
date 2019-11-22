@@ -16,15 +16,15 @@ export class ScrabbleService {
   constructor(private http: HttpClient) { }
 
   getBoard() {
-    return this.http.get<Square[]>(this.boardApiUrl);
+    return this.http.get<Square[][]>(this.boardApiUrl);
   }
 
-  getBoards() {
-    return this.http.get<Board[]>(this.boardsApiUrl);
-  }
+  // getBoards() {
+  //   return this.http.get<Board[]>(this.boardsApiUrl);
+  // }
 
-  getMoves() {
-    return this.http.get<Move[]>(this.moveApiUrl);
+  postMove(board: Board) {
+    return this.http.post<Board[]>(this.moveApiUrl, board);
   }
 
   getRules() {

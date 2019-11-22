@@ -4,11 +4,12 @@ import { Move } from '../models/move.model';
 import { Square } from '../models/square.model';
 import { Bonus } from '../models/rules.model';
 import { Position } from '../models/position.model';
+import { Board } from '../models/board.model';
 
 export interface PlayableBoard {
   board: Square[][];
   move: Move;
-  rack: string;   
+  rack: string;
 }
 
 @Component({
@@ -32,66 +33,59 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
     this.playableBoards = new Array<PlayableBoard>();
   }
 
-  onCellClick(event: any) {
-
-  }
 
   ngOnInit() {
-
-
-  }
-
-  ngAfterViewInit() {
-    //this.createGrid(this.container, 15, "g1");
     this.scrabbleService.getRules().subscribe(rules => {
       this.letters = rules.letters;
       this.bonuses = rules.bonuses;
 
-      this.scrabbleService.getBoards().subscribe(boards => {
-        boards.forEach(playableBoard => {
-          var b: Square[][] = [];
-          for (let r = 0; r < 15; r++) {
-            b[r] = [];
-            for (let c = 0; c < 15; c++) {
-              let tile: Square = playableBoard.tiles.find(s => s.position.x == c && s.position.y == r) || this.blankTile({x: c, y: r});
-              tile.color = this.getBackgroundColor(tile);
-              b[r][c] = tile;
-            }
+      //this.scrabbleService.getBoard().subscribe(b => {
+      var pb: Square[][] = [];
+      for (let r = 0; r < 15; r++) {
+        pb[r] = [];
+        for (let c = 0; c < 15; c++) {
+          let tile: Square = this.blankTile({ x: c, y: r });
+          tile.color = this.getBackgroundColor(tile);
+          pb[r][c] = tile;
+        }
+      }
+      this.playableBoards.push({ board: pb, rack: "", move: { start: null, end: null, word: "", score: 0 } });
+      //});
+    });
+  }
+
+  handlePublish(board: Board) {
+    this.scrabbleService.postMove(board).subscribe(m => {
+      this.playableBoards.length = 0;
+
+      m.forEach(playableBoard => {
+        var b: Square[][] = [];
+        for (let r = 0; r < 15; r++) {
+          b[r] = [];
+          for (let c = 0; c < 15; c++) {
+            let tile: Square = playableBoard.tiles.find(s => s.position.x == c && s.position.y == r) || this.blankTile({ x: c, y: r });
+            if (!tile.tile) tile.tile = ""; // need to fix this server side, shouldnt be a char?, should always have a value even if blank
+            tile.color = this.getBackgroundColor(tile);
+            b[r][c] = tile;
           }
-          this.playableBoards.push({ board: b, rack: playableBoard.rack, move: playableBoard.playedWord });
-        });
-
-        // var b: Square[][] = [];
-        // for (let r = 0; r < 15; r++) {
-        //   b[r] = [];
-        //   for (let c = 0; c < 15; c++) {
-        //     let tile: Square = board.find(s => s.position.x == c && s.position.y == r) || { position: { x: c, y: r }, isAnchor: false, tile: "" };
-        //     tile.color = this.getBackgroundColor(tile);
-        //     tile.value = (this.letters[tile.tile] || "").toString();
-        //     b[r][c] = tile;
-        //   }
-        // }
-
-        //this.board = b;
-
-        // this.initBoard(board, "g1");
-        // this.scrabbleService.getMoves().subscribe(moves => {
-        //   moves.forEach(m => {
-        //     this.gridCounter += 1;
-        //     var id = "g" + this.gridCounter;
-        //     this.createGrid(this.container, 15, id);
-        //     this.applyBonuses(id);
-        //     this.initBoard(board, id);
-        //     this.processMove(m, id);
-        //   });
-        // });
+        }
+        this.playableBoards.push({ board: b, rack: playableBoard.rack, move: playableBoard.playedWord });
       });
     });
   }
 
-  private blankTile(p: Position) : Square {
+
+
+
+
+
+  ngAfterViewInit() {
+
+  }
+
+  private blankTile(p: Position): Square {
     return {
-      position: { x: p.x, y: p.y},
+      position: { x: p.x, y: p.y },
       isAnchor: false,
       isBlank: false,
       tile: "",
@@ -110,7 +104,8 @@ export class ScrabbleComponent implements OnInit, AfterViewInit {
   }
 
   private isBlank(move: Move, position: number) {
-    return move.blanks.filter(b => b == position).length;
+    //return move.blanks.filter(b => b == position).length;
+    return false;
   }
 
   private processMove(move: Move, gridId: string) {

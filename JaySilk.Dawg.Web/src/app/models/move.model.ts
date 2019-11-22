@@ -5,5 +5,5 @@ export interface Move {
     end: Position;
     word: string;
     score: number;
-    blanks: number[];
+    //blanks: number[];
 }

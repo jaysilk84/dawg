@@ -15,8 +15,8 @@ namespace JaySilk.Dawg.Api.Controllers
     public class MoveController : ControllerBase
     {
         
-        [HttpGet]
-        public ActionResult Get() {
+        [HttpPost]
+        public ActionResult Post(BoardModel board) {
             // var words = new string[] { "YOK", "YET", "ON", "KA", "ENAMELS" }.OrderBy(x => x);
             // var dawg = new Lib.Dawg();
             // foreach (var w in words)
@@ -24,17 +24,24 @@ namespace JaySilk.Dawg.Api.Controllers
 
             // dawg.Finish();
             // var scrabble = new Scrabble.Scrabble(dawg);
-            var scrabble = new Scrabble.Scrabble(BoardController.WordList);
-            return Ok(scrabble.PlayableWords.OrderByDescending(x => x.Score).Take(50));
-        }
-
-        [HttpGet("board")]
-        public ActionResult GetBoard() {
-            var scrabble = new Scrabble.Scrabble(BoardController.WordList);
+            
+            var scrabble = new Scrabble.Scrabble(board.Tiles.Select(t => new Square(t.Tile, t.Position) {
+                IsPlayed = false,
+                HasBlank = t.IsBlank
+            }).ToList(), board.Rack, BoardController.WordList);
 
             return Ok(scrabble.PlayableBoards.OrderByDescending(x => x.PlayedWord.Score).Take(50));
-
         }
+
+
+
+        // [HttpGet("board")]
+        // public ActionResult GetBoard() {
+        //     var scrabble = new Scrabble.Scrabble(BoardController.WordList);
+
+        //     return Ok(scrabble.PlayableBoards.OrderByDescending(x => x.PlayedWord.Score).Take(50));
+
+        // }
 
         // public ActionResult Get() {
         //     var scrabble = new Scrabble.Scrabble(BoardController.WordList);

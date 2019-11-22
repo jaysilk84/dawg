@@ -18,7 +18,7 @@ namespace JaySilk.Dawg.Api.Controllers
         
         [HttpGet]
         public ActionResult Get() {
-            var scrabble = new Scrabble.Scrabble(WordList);
+            var scrabble = new Scrabble.Scrabble(new List<Square>(), "", WordList);
             return Ok(scrabble.SerializeBoard(scrabble.Board));
         }
 

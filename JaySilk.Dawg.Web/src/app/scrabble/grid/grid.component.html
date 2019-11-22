@@ -1,9 +1,11 @@
 <div #container class="container">
-    <div (keydown)="keyHandler($event)" tabindex="0">
+    <div (keydown)="gridKeyHandler($event)" tabindex="0">
         <div class="grid" (mouseover)="hasFocus=true" (mouseout)="hasFocus=false" [class.selected]="hasFocus">
 
             <div *appNgMatrix="let tile of board; rows: 15; cols: 15; position as p" class="cell"
                 [style.background-color]="tile.color" [class.anchor]="tile.isAnchor" [class.played]="tile.isPlayed"
+                [class.colSelected]="selectedCell && direction == 1 && tile.position.y == selectedCell.position.y && selectedCell != tile"
+                [class.rowSelected]="selectedCell && direction == 2 && tile.position.x == selectedCell.position.x && selectedCell != tile"
                 [class.selected]="isSelected(tile)" (click)="selectCell(tile)" [attr.data-row]="p.row"
                 [attr.data-col]="p.col">
 
@@ -18,6 +20,11 @@
     <div class="info">
         <span class="move"><span class="label">Word:</span>{{move.word}}</span>
         <span class="score"><span class="label">Score:</span>{{move.score}}</span>
-        <span class="rack"><span class="label">Rack:</span>{{rack}}</span>
+        <span class="rack"><span class="label">Rack:</span>
+            <input maxlength="7" (keyup)="rackKeyHandler($event)" #input
+                (input)="input.value=$event.target.value.toUpperCase()"
+                value="{{rack}}" />
+        </span>
+        <span class="publish"><button (click)="publish.emit(getPlayedTiles())">Publish</button></span>
     </div>
 </div>
