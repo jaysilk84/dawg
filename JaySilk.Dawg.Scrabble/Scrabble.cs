@@ -169,9 +169,7 @@ namespace JaySilk.Dawg.Scrabble
                     }
                     else if (rack.HasBlank) {
                         rack.Remove('?');
-                        //rack.Add((char)('?' + e.Key));
                         LeftPart(partialWord.Append(e.Key, true), e.Value, limit - 1, rack, board, anchor);
-                        //rack.Remove((char)('?' + e.Key));
                         rack.Add('?');
                     }
                 }
@@ -190,7 +188,7 @@ namespace JaySilk.Dawg.Scrabble
 
                 if (!s.IsOccupied) {
                     t.HasBlank = s.HasBlank = word.HasBlank(i);
-                    t.Tile= s.Tile = l;
+                    t.Tile = s.Tile = l;
                     t.IsPlayed = true;
                 }
 

@@ -67,13 +67,42 @@ export class GridComponent implements OnInit {
     if (!this.selectedCell || !this.hasFocus)
       return;
 
+    console.log("KeyCode: " + event.keyCode + " Key: " + event.key );
     if (event.keyCode >= 'A'.charCodeAt(0) && event.keyCode <= 'z'.charCodeAt(0)) {
       this.selectedCell.tile = event.key.toUpperCase();
       this.selectedCell.value = this.letters[event.key.toUpperCase()];
       this.selectedCell = this.getNextTile(false);
-    }
+    
+    // handle '?' for setting tile to a blank
+    } else if (event.keyCode == 191) {
+      this.selectedCell.value = 0;
+      this.selectedCell.isBlank = true;
 
-    if (event.keyCode == 8 || event.keyCode == 46) {
+    // handle left arrow
+    } else if (event.keyCode == 37) {
+      this.selectedCell = this.getTileFromOffset(0, -1);
+
+    // handle up arrow
+    } else if (event.keyCode == 38) {
+      this.selectedCell = this.getTileFromOffset(-1, 0);
+
+     // handle right arrow
+    } else if (event.keyCode == 39) {
+      this.selectedCell = this.getTileFromOffset(0, 1);
+    
+    // handle down arrow
+    } else if (event.keyCode == 40) {
+      this.selectedCell = this.getTileFromOffset(1, 0);
+    
+    // handle shift to switch orientation
+    } else if (event.keyCode == 16) {
+      if (this.direction == GridComponent.HORIZONTAL)
+        this.direction = GridComponent.VERTICAL
+      else 
+        this.direction = GridComponent.HORIZONTAL;
+    
+    // handle backspace or delete
+    } else if (event.keyCode == 8 || event.keyCode == 46) {
       this.selectedCell.tile = "";
       this.selectedCell.value = 0;
       this.selectedCell.isPlayed = false;
@@ -82,8 +111,20 @@ export class GridComponent implements OnInit {
   }
 
   rackKeyHandler(event: KeyboardEvent) {
-    //if (event.keyCode >= 'A'.charCodeAt(0) && event.keyCode <= 'z'.charCodeAt(0)) 
     this.rack = (event.target as HTMLInputElement).value.toUpperCase();
+  }
+
+  private getTileFromOffset(row: number, col: number) {
+    let newRow = this.selectedCell.position.y + row;
+    let newCol = this.selectedCell.position.x + col;
+
+    console.log('nr ' + newRow + ' nc ' + newCol);
+    if (newRow < 0 || newRow > 14) 
+      return this.selectedCell;
+    if (newCol < 0 || newCol > 14)
+      return this.selectedCell;
+
+    return this.board[newRow][newCol];
   }
 
   private getNextTile(backspace: boolean): Square {
