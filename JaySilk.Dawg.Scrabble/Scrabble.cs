@@ -289,23 +289,29 @@ namespace JaySilk.Dawg.Scrabble
 
         private void CalculateCrossCheck(Square[,] board, Square currentSquare) {
             var downWord = GetDownWord(board, currentSquare);
-            var crossChecks = new Dictionary<char, Word>();
+            var crossChecks = new Dictionary<char, CrossCheck>();
 
             // this is weird, GetDownWord should always be 1 if there is no downword (just the anchor square)
             // TODO: Revisit to make it more intuitive
-            if (downWord.Length == 1)
+            if (downWord.Word.Length == 1)
                 return;
 
             foreach (var c in ALPHABET) {
-                var word = downWord.ToString().Replace('?', c);
-                if (dawg.Exists(word))
-                    crossChecks.Add(c, new Word(word, downWord.Blanks));
+                var word = downWord.Word.ToString().Replace('?', c);
+                
+                if (dawg.Exists(word)) {
+                    var squareCopy = new List<Square>(downWord.Squares.Select(s => new Square(s)));
+                    squareCopy.Single(s => s.Tile.Value == '?').Tile = c;
+                    crossChecks.Add(c, new CrossCheck(new Word(word, downWord.Word.Blanks), squareCopy));
+                }
             }
+            
             currentSquare.CrossChecks = crossChecks;
         }
 
-        private Word GetDownWord(Square[,] board, Square currentSquare) {
+        private CrossCheck GetDownWord(Square[,] board, Square currentSquare) {
             var word = new Word("");
+            var squares = new List<Square>();
 
             // get upper bound of the potential downword
             var r = currentSquare.Position.Y - 1;
@@ -314,15 +320,23 @@ namespace JaySilk.Dawg.Scrabble
 
             for (r = r + 1; r < MAX_ROW; r++) {
                 var s = board[r, c];
-                if (currentSquare.Position.Y == r)
+                if (currentSquare.Position.Y == r) {
                     word = word.Append('?', s.HasBlank);
-                else if (s.IsOccupied)
+                    var sc = new Square(s);
+                    sc.Tile = '?';
+                    squares.Add(sc);
+                } else if (s.IsOccupied) {
                     word = word.Append(s.Tile.Value, s.HasBlank);
-                else
+                    squares.Add(s);
+                } else
                     break;
+
+                // shady because this is dependant on the break above. Essentially add
+                // the square to the squares list if it's an occupied square
+                
             }
 
-            return word;
+            return new CrossCheck(word, squares);
         }
 
         private char GetTileLabel(Square s) {
@@ -453,7 +467,7 @@ namespace JaySilk.Dawg.Scrabble
                     doubleWords++;
                 else if (s.Multiplier != null && s.Multiplier.Type == MultiplierType.Word && s.Multiplier.Value == 3 && s.IsPlayed)
                     tripleWords++;
-                var value = s.HasBlank ? 0 : Letters[s.Tile.Value];
+                var value = s.Value; //s.HasBlank ? 0 : Letters[s.Tile.Value];
 
                 total += ApplyLetterMultiplier(value, s.IsPlayed ? s.Multiplier : null); // dont count existing square bonuses
 
@@ -466,6 +480,10 @@ namespace JaySilk.Dawg.Scrabble
             return total = (multipliers == 0 ? total + downWordTotal : multipliers + downWordTotal) + bonus;
         }
 
+        private static string GetWordFromSquares(List<Square> squares) {
+            return squares.Aggregate<Square, string, string>("", (a, s) => a += s.Tile, a => a);
+        }
+
         private static int ApplyLetterMultiplier(int value, Multiplier multiplier) {
             if (multiplier == null) return value;
 
@@ -476,15 +494,25 @@ namespace JaySilk.Dawg.Scrabble
             };
         }
 
-        private static int ScoreDownWord(Word word, Square square) {
+        private static int ScoreDownWord(CrossCheck crossCheck, Square square) {
             var total = 0;
             var multiplier = square.Multiplier;
-            var i = 0;
-            foreach (var c in word.ToString()) {
+            //var i = 0;
+            foreach (var s in crossCheck.Squares) {
                 // if the letter is the square, apply its multiplier if any, otherwise just use the letter value
-                var value = word.HasBlank(i) ? 0 : Letters[c];
-                total += c == square.Tile.Value ? ApplyLetterMultiplier(value, multiplier) : value;
-                i++;
+                //var value = 0;
+                if (s.AbsPosition == square.AbsPosition) {
+                    //value = square.HasBlank ? 0 : Letters[square.Tile.Value];
+                    total += ApplyLetterMultiplier(square.Value, multiplier);
+                } else {
+                    //value = s.HasBlank ? 0 : Letters[s.Tile.Value];
+                    total += s.Value;
+                }
+                
+                // TODO: Make it so we can do reference matching. s and square should be the same object, might work now if they
+                // come from the same board but I'm not sure especially with the work to keep it immutable
+                //total += s.IsPlayed ? ApplyLetterMultiplier(value, multiplier) : value;
+           //     i++;
             }
 
             // apply a word multiplier if one exists on the placed tile creating the down word
@@ -575,10 +603,28 @@ namespace JaySilk.Dawg.Scrabble
         public override string ToString() => _word.ToString();
     }
 
+    // Wrapper so cross checks can have the information of the word and also 
+    // the tile data for scoring purposes. 
+    // TODO: Refactor into a better model
+    public class CrossCheck {
+        public Word Word { get; }
+        public List<Square> Squares { get; }
+
+        public CrossCheck() {
+            Word = new Word("");
+            Squares = new List<Square>();
+        }
+
+        public CrossCheck(Word word, List<Square> squares) {
+            Word = word;
+            Squares = squares;
+        }
+    }
+
     public class Square
     {
         public Square(Square s) { // copy constructor
-            CrossChecks = new Dictionary<char, Word>(s.CrossChecks);
+            CrossChecks = new Dictionary<char, CrossCheck>(s.CrossChecks);
             Tile = s.Tile;
             Position = s.Position;
             //AbsPosition = s.AbsPosition;
@@ -602,7 +648,7 @@ namespace JaySilk.Dawg.Scrabble
         }
 
         public Square(char? tile, Point position) {
-            CrossChecks = new Dictionary<char, Word>(Scrabble.ALPHABET.Select(x => new KeyValuePair<char, Word>(x, new Word(""))));
+            CrossChecks = new Dictionary<char, CrossCheck>(Scrabble.ALPHABET.Select(x => new KeyValuePair<char, CrossCheck>(x, new CrossCheck())));
             Tile = tile;
             Position = position;
             //AbsPosition = position; // should never change
@@ -613,7 +659,7 @@ namespace JaySilk.Dawg.Scrabble
         public bool HasBlank = false;
         public bool IsAnchor { get; set; } = false;
         public ConsoleColor Color = ConsoleColor.White;
-        public Dictionary<char, Word> CrossChecks;
+        public Dictionary<char, CrossCheck> CrossChecks;
         public char? Tile;
         public Point Position;
         public Point AbsPosition => this.IsTransposed ? new Point(this.Position.Y, this.Position.X) : this.Position;
