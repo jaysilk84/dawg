@@ -6,6 +6,7 @@ using System.Text;
 
 using Newtonsoft.Json;
 using JaySilk.Dawg.Lib;
+using JaySilk.Dawg.Scrabble;
 
 namespace JaySilk.Dawg.Cli
 {
@@ -46,6 +47,17 @@ namespace JaySilk.Dawg.Cli
         }
 
         static void Main(string[] args) {
+     
+             var s = new Scrabble.Scrabble(new List<Square>());
+             s.PrintBoard(s.Board);
+             Console.WriteLine("");
+             s.PrintBoard(s.Transpose(s.Board));
+     
+     
+     
+            return;
+
+
             var dawg = new Lib.Dawg();
 
             // var root = new Node();

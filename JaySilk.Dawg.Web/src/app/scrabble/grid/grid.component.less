@@ -1,0 +1,84 @@
+@cell-size: 25;
+@grid-cols: 15;
+@grid-width: (@cell-size * @grid-cols);
+
+.container {
+    float: left;
+    margin-bottom: 10px;
+}
+
+input {
+    width: 70px;
+}
+
+.selected {
+    border-color: red !important;
+}
+
+.colSelected, .rowSelected {
+    border-color: green !important;
+}
+
+.grid {
+    border: 1px solid #ccc;
+    border-width: 1px 1px 1px 1px;
+    float: left;
+    width: unit(@grid-width, px);
+    font-family: 'Arial Black';
+    margin-right: 10px;
+    //margin-bottom: 20px;
+}
+
+.cell {
+    border: 1px solid #ccc;
+    border-width: 1px 1px 1px 1px;
+    float: left;
+    text-align: center;
+    width: unit(@cell-size - 2, px);
+    height: unit(@cell-size - 2, px);
+    line-height: unit(@cell-size, px);
+    vertical-align: middle;
+    position: relative;
+
+}
+
+.value {
+    position: absolute;
+    top: 0;
+    right: 1px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight:bold;
+    font-size: 6px;
+    line-height: 10px;
+    border: 0px;
+}
+
+.played {
+    color:red;
+}
+
+.anchor {
+    border-color: blue;
+}
+
+.info span {
+    padding-right: 10px;
+}
+
+.label {
+    font-weight: bold;
+    font-size: 14px;
+    color: black;
+}
+
+.move, .score, .rack {
+    font-family: "Arial Black";
+    font-size: 12px;
+}
+
+.move {
+    //color: red;
+}
+
+
+

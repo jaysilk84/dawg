@@ -1,0 +1,7 @@
+
+<div #container id="container"></div>
+
+
+<app-grid *ngFor="let b of playableBoards" 
+    [board]="b.board" [move]="b.move" [rack]="b.rack" [letters]="letters"
+    (publish)="handlePublish($event)"></app-grid>
